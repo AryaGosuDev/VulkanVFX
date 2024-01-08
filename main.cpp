@@ -1,5 +1,3 @@
-//
-//
 #include "VulkanTemplate.hpp"
 #include "InputHandler.h"
 

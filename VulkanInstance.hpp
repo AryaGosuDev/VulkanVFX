@@ -4,15 +4,14 @@
 namespace VkApplication {
 
 	void MainVulkApplication::createInstance( std::string appName ) {
-		if (enableValidationLayers && !checkValidationLayerSupport()) {
+		if (enableValidationLayers && !checkValidationLayerSupport()) 
 			throw std::runtime_error("validation layers requested, but not available!");
-		}
 
 		VkApplicationInfo appInfo = {};
 		appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		appInfo.pApplicationName = appName.c_str();
 		appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		appInfo.pEngineName = "No Engine";
+		appInfo.pEngineName = "Defered rendering engine";
 		appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 		appInfo.apiVersion = VK_API_VERSION_1_0;
 
@@ -42,7 +41,6 @@ namespace VkApplication {
 		}
 	}
 
-
 	bool checkExtensions() {
 		uint32_t extensions_count = 0;
 		VkResult result = VK_SUCCESS;
@@ -64,8 +62,6 @@ namespace VkApplication {
 		
 		return true;
 	}
-
 }
-
 
 #endif

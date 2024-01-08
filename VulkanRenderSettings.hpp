@@ -1,7 +1,6 @@
 #ifndef __VK_RENDER_SETTINGS_HPP__
 #define __VK_RENDER_SETTINGS_HPP__
 
-
 namespace VkApplication {
 
     void MainVulkApplication::createRenderPass() {
@@ -62,9 +61,6 @@ namespace VkApplication {
             throw std::runtime_error("failed to create render pass!");
         }
     }
-
-
-
 
     void MainVulkApplication::createGraphicsPipeline() {
         auto vertShaderCode = readFile("shaders/vert.spv");
@@ -188,7 +184,6 @@ namespace VkApplication {
         if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) 
             throw std::runtime_error("failed to create graphics pipeline!");
         
-
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
     }

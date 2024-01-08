@@ -18,7 +18,28 @@ namespace VkApplication {
         fragmentLayoutBinding.pImmutableSamplers = nullptr;
         fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, fragmentLayoutBinding };
+        VkDescriptorSetLayoutBinding fragmentGbuffer1{};
+        fragmentLayoutBinding.binding = 2;
+        fragmentLayoutBinding.descriptorCount = 1;
+        fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentLayoutBinding.pImmutableSamplers = nullptr;
+        fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutBinding fragmentGbuffer2{};
+        fragmentLayoutBinding.binding = 3;
+        fragmentLayoutBinding.descriptorCount = 1;
+        fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentLayoutBinding.pImmutableSamplers = nullptr;
+        fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutBinding fragmentGbuffer3{};
+        fragmentLayoutBinding.binding = 4;
+        fragmentLayoutBinding.descriptorCount = 1;
+        fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentLayoutBinding.pImmutableSamplers = nullptr;
+        fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 5> bindings = { uboLayoutBinding, fragmentLayoutBinding,fragmentGbuffer1,fragmentGbuffer2,fragmentGbuffer3 };
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -67,9 +88,8 @@ namespace VkApplication {
         allocInfo.pSetLayouts = layouts.data();
 
         descriptorSets.resize(swapChainImages.size());
-        if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) 
             throw std::runtime_error("failed to allocate descriptor sets!");
-        }
 
         for (size_t i = 0; i < swapChainImages.size(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
@@ -82,7 +102,22 @@ namespace VkApplication {
             bufferFragInfo.offset = 0;
             bufferFragInfo.range = sizeof(UniformFragmentObject);
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            VkDescriptorImageInfo imageInfoAlbedo{};
+            imageInfoAlbedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfoAlbedo.imageView = AlbedoImageView;  // This is the reflection texture's image view
+            imageInfoAlbedo.sampler = textureSampler;  // This is a sampler object you've created
+
+            VkDescriptorImageInfo imageInfoNormal{};
+            imageInfoNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfoNormal.imageView = NormalsImageView;  // This is the reflection texture's image view
+            imageInfoNormal.sampler = textureSampler;  // This is a sampler object you've created
+
+            VkDescriptorImageInfo imageInfoDepth{};
+            imageInfoDepth.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfoDepth.imageView = DepthInfoImageView;  // This is the reflection texture's image view
+            imageInfoDepth.sampler = textureSampler;  // This is a sampler object you've created
+
+            std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -100,6 +135,29 @@ namespace VkApplication {
             descriptorWrites[1].descriptorCount = 1;
             descriptorWrites[1].pBufferInfo = &bufferFragInfo;
 
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = descriptorSets[i];
+            descriptorWrites[2].dstBinding = 2;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pImageInfo = &imageInfoAlbedo;
+
+            descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[3].dstSet = descriptorSets[i];
+            descriptorWrites[3].dstBinding = 1;
+            descriptorWrites[3].dstArrayElement = 0;
+            descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[3].descriptorCount = 1;
+            descriptorWrites[3].pImageInfo = &imageInfoNormal;
+
+            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[4].dstSet = descriptorSets[i];
+            descriptorWrites[4].dstBinding = 1;
+            descriptorWrites[4].dstArrayElement = 0;
+            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[4].descriptorCount = 1;
+            descriptorWrites[4].pImageInfo = &imageInfoDepth;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }

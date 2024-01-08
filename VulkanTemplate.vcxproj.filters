@@ -83,9 +83,20 @@
     <ClInclude Include="VulkanImgui.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanGBuffer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader_base.frag" />
     <None Include="shaders\shader_base.vert" />
+    <None Include="shaders\gbuffer_albedo.frag" />
+    <None Include="shaders\gbuffer_albedo.vert" />
+    <None Include="shaders\gbuffer_depthInfo.frag" />
+    <None Include="shaders\gbuffer_depthInfo.vert" />
+    <None Include="shaders\gbuffer_diffuse.frag" />
+    <None Include="shaders\gbuffer_diffuse.vert" />
+    <None Include="shaders\gbuffer_normals.frag" />
+    <None Include="shaders\gbuffer_normals.vert" />
   </ItemGroup>
 </Project>

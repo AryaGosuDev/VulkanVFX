@@ -256,18 +256,6 @@ namespace VkApplication {
 		ImGui::End();
 		// Rendering
 		ImGui::Render();
-		/*
-		ImDrawData* draw_data = ImGui::GetDrawData(); draw_data->DisplaySize.x = 100; draw_data->DisplaySize.y = 100;
-		const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
-		if (!is_minimized) {
-			imgui_window.ClearValue.color.float32[0] = clear_color.x * clear_color.w;
-			imgui_window.ClearValue.color.float32[1] = clear_color.y * clear_color.w;
-			imgui_window.ClearValue.color.float32[2] = clear_color.z * clear_color.w;
-			imgui_window.ClearValue.color.float32[3] = clear_color.w;
-			
-		}
-		*/
-
 	}
 	
 	// TODO : Destroy imgui and pool

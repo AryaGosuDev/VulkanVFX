@@ -6,7 +6,6 @@ namespace VkApplication {
     void MainVulkApplication::drawFrame() {
         vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
-
         uint32_t imageIndex;
         VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, 
             imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
@@ -19,7 +18,7 @@ namespace VkApplication {
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        updateUniformBuffer(imageIndex);
+        //updateUniformBuffer(imageIndex);
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -172,14 +171,22 @@ namespace VkApplication {
 
     void MainVulkApplication::createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+        VkDeviceSize bufferFragSize = sizeof(UniformFragmentObject);
 
         uniformBuffers.resize(swapChainImages.size());
         uniformBuffersMemory.resize(swapChainImages.size());
+
+        uniformFragBuffers.resize(swapChainImages.size());
+        uniformFragBuffersMemory.resize(swapChainImages.size());
 
         for (size_t i = 0; i < swapChainImages.size(); i++) {
             createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
                 uniformBuffers[i], uniformBuffersMemory[i]);
+
+            createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                uniformFragBuffers[i], uniformFragBuffersMemory[i]);
         }
     }
 
@@ -195,14 +202,13 @@ namespace VkApplication {
         if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate command buffers!");
         }
-
+        /*
         for (size_t i = 0; i < commandBuffers.size(); i++) {
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-            if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+            if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) 
                 throw std::runtime_error("failed to begin recording command buffer!");
-            }
 
             VkRenderPassBeginInfo renderPassInfo{};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -212,8 +218,7 @@ namespace VkApplication {
             renderPassInfo.renderArea.extent = swapChainExtent;
 
             std::array<VkClearValue, 2> clearValues{};
-            //std::array<VkClearValue, 1> clearValues{};
-            clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+            clearValues[0].color = { 0.0f, 0.0f, 1.0f, 1.0f };
             clearValues[1].depthStencil = { 1.0f, 0 };
 
             renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -239,6 +244,7 @@ namespace VkApplication {
                 throw std::runtime_error("failed to record command buffer!");
             }
         }
+        */
     }
 
     VkFormat MainVulkApplication::findSupportedFormat(const std::vector<VkFormat>& candidates, 
@@ -258,10 +264,6 @@ namespace VkApplication {
         throw std::runtime_error("failed to find supported format!");
     }
 
-    
-
-    
-
     void MainVulkApplication::createCommandPool() {
         QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
@@ -269,9 +271,8 @@ namespace VkApplication {
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-        if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) 
             throw std::runtime_error("failed to create graphics command pool!");
-        }
     }
 
     VkCommandBuffer MainVulkApplication::beginSingleTimeCommands() {
