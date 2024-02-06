@@ -1,0 +1,17 @@
+- fix axis corellation between blender geo and app
+
+- test multi threaded frustrum culling
+
+- write shaders
+
+- shadow mapping
+
+{
+	Caveats and Considerations:
+	Memory Usage: Storing full position data for each fragment can consume a significant amount of memory, especially at higher resolutions. This is something to consider when designing your G-buffer layout.
+
+	Precision and Range: Be mindful of the precision and range when encoding position data, as insufficient precision can lead to artifacts in lighting calculations.
+
+	Alternatives: Depending on your lighting calculations and the complexity of your scene, you might find alternative methods (like reconstructing position from depth) more efficient.
+}
+

@@ -30,4 +30,4 @@ void main() {
 	
 	LightPos = vec3( ubo.view * ubo.lightPos);
     fragColor = color;
-}`
+}

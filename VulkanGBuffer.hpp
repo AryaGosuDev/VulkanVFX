@@ -39,10 +39,6 @@ namespace VkApplication {
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, NormalsImage, NormalsImageMemory);
 		NormalsImageView = createImageView(NormalsImage, FB_COLOR_FORMAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-		createImage(swapChainExtent.width, swapChainExtent.height, FB_COLOR_FORMAT, VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, DiffuseImage, DiffuseImageMemory);
-		DiffuseImageView = createImageView(DiffuseImage, FB_COLOR_FORMAT, VK_IMAGE_ASPECT_COLOR_BIT);
-
 		//creating depth image, memory and view
 		{
 			VkImageCreateInfo depthImageInfo = {};
@@ -127,14 +123,6 @@ namespace VkApplication {
 			depthInfoAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			depthInfoAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			VkAttachmentDescription diffuseAttachment{};
-			diffuseAttachment.format = FB_COLOR_FORMAT;
-			diffuseAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-			diffuseAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			diffuseAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			diffuseAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			diffuseAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
 			VkAttachmentDescription depthAttachment{};
 			depthAttachment.format = findDepthFormat();
 			depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -154,10 +142,6 @@ namespace VkApplication {
 			VkAttachmentReference colorAttachmentRefDepthInfo{};
 			colorAttachmentRefDepthInfo.attachment = 2;
 			colorAttachmentRefDepthInfo.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-			VkAttachmentReference colorAttachmentRefDiffuse{};
-			colorAttachmentRefDiffuse.attachment = 3;
-			colorAttachmentRefDiffuse.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 			VkAttachmentReference depthAttachmentRef{};
 			depthAttachmentRef.attachment = 4;
@@ -180,12 +164,6 @@ namespace VkApplication {
 			subpassDepthInfo.colorAttachmentCount = 1;
 			subpassDepthInfo.pColorAttachments = &colorAttachmentRefDepthInfo;
 			subpassDepthInfo.pDepthStencilAttachment = &depthAttachmentRef;
-
-			VkSubpassDescription subpassDiffuse{};
-			subpassDiffuse.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpassDiffuse.colorAttachmentCount = 1;
-			subpassDiffuse.pColorAttachments = &colorAttachmentRefDiffuse;
-			subpassDiffuse.pDepthStencilAttachment = &depthAttachmentRef;
 
 			VkSubpassDependency dependency1{};
 			dependency1.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -211,14 +189,6 @@ namespace VkApplication {
 			dependency3.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 			dependency3.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-			VkSubpassDependency dependency4{};
-			dependency4.srcSubpass = 2;
-			dependency4.dstSubpass = 3;
-			dependency4.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-			dependency4.srcAccessMask = 0;
-			dependency4.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-			dependency4.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
 			VkSubpassDependency dependencyToEnd{};
 			dependencyToEnd.srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencyToEnd.dstSubpass = VK_SUBPASS_EXTERNAL;
@@ -227,15 +197,15 @@ namespace VkApplication {
 			dependencyToEnd.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencyToEnd.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			std::array<VkAttachmentDescription, 5> attachments = { albedoAttachment, normalAttachment, depthInfoAttachment, diffuseAttachment, depthAttachment };
+			std::array<VkAttachmentDescription, 4> attachments = { albedoAttachment, normalAttachment, depthInfoAttachment, depthAttachment };
 			VkRenderPassCreateInfo renderPassInfo{};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 			renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 			renderPassInfo.pAttachments = attachments.data();
-			std::array<VkSubpassDescription, 4> subpasses = { subpassAlbedo, subpassNormals, subpassDepthInfo, subpassDiffuse };
+			std::array<VkSubpassDescription, 3> subpasses = { subpassAlbedo, subpassNormals, subpassDepthInfo };
 			renderPassInfo.subpassCount = subpasses.size();
 			renderPassInfo.pSubpasses = subpasses.data();
-			std::array<VkSubpassDependency, 5> dependencies = { dependency1, dependency2,dependency3,  dependency4,dependencyToEnd };
+			std::array<VkSubpassDependency, 4> dependencies = { dependency1, dependency2,dependency3,dependencyToEnd };
 			renderPassInfo.dependencyCount = dependencies.size();
 			renderPassInfo.pDependencies = dependencies.data();
 
@@ -244,6 +214,7 @@ namespace VkApplication {
 			}
 		}
 
+#pragma region m1
 		{
 			VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 			pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -254,9 +225,7 @@ namespace VkApplication {
 
 			check_vk_result(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &GBufferPipelineLayout));
 		}
-		
-
-
+#pragma endregion
 		auto vertShaderCode = readFile("shaders/gbuffer_albedo_vert.spv");
 		auto fragShaderCode = readFile("shaders/gbuffer_albedo_frag.spv");
 		std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages;
@@ -378,6 +347,7 @@ namespace VkApplication {
 			check_vk_result(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GBufferPipelines.albedo));
 		}
 
+#pragma region m2
 		// pipeline layout for normals
 		{
 			vertShaderCode = readFile("shaders/gbuffer_normals_vert.spv");
@@ -402,11 +372,13 @@ namespace VkApplication {
 
 			check_vk_result(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GBufferPipelines.normals));
 		}
+
+#pragma endregion
 		
 		//pipeline layout for depth info
 		{
-			vertShaderCode = readFile("shaders/gbuffer_depthinfo_vert.spv");
-			fragShaderCode = readFile("shaders/gbuffer_depthinfo_frag.spv");
+			vertShaderCode = readFile("shaders/gbuffer_depthInfo_vert.spv");
+			fragShaderCode = readFile("shaders/gbuffer_depthInfo_frag.spv");
 
 			vertShaderModule = createShaderModule(vertShaderCode);
 			fragShaderModule = createShaderModule(fragShaderCode);
@@ -428,39 +400,14 @@ namespace VkApplication {
 			check_vk_result(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GBufferPipelines.depthInfo));
 		}
 
-		//pipeline layout for diffuse
-		{
-			vertShaderCode = readFile("shaders/gbuffer_diffuse_vert.spv");
-			fragShaderCode = readFile("shaders/gbuffer_diffuse_frag.spv");
-
-			vertShaderModule = createShaderModule(vertShaderCode);
-			fragShaderModule = createShaderModule(fragShaderCode);
-
-			vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertShaderStageInfo.module = vertShaderModule;
-			vertShaderStageInfo.pName = "main";
-
-			fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-			fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			fragShaderStageInfo.module = fragShaderModule;
-			fragShaderStageInfo.pName = "main";
-
-			shaderStages[0] = vertShaderStageInfo;
-			shaderStages[1] = fragShaderStageInfo;
-			pipelineInfo.subpass = 3;
-
-			check_vk_result(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GBufferPipelines.diffuse));
-		}
-
 		vkDestroyShaderModule(device, fragShaderModule, nullptr);
 		vkDestroyShaderModule(device, vertShaderModule, nullptr);
 
 		//creating framebuffers
 		{
 			for (size_t i = 0; i < swapChainFramebuffers.size(); ++i) {
-				std::array<VkImageView, 5> GBufferImageViewattachments = { AlbedoImageView, NormalsImageView, DepthInfoImageView, 
-					                                                       DiffuseImageView, GBufferImageDepthView };
+				std::array<VkImageView, 4> GBufferImageViewattachments = { AlbedoImageView, NormalsImageView, DepthInfoImageView, 
+					                                                       GBufferImageDepthView };
 
 				VkFramebufferCreateInfo framebufferInfo = {};
 				framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -545,7 +492,6 @@ namespace VkApplication {
 
 		vkAllocateCommandBuffers(device, &allocInfo, GbufferCommandBuffer.data());
 
-
 		for (size_t i = 0; i < GbufferCommandBuffer.size(); ++i) {
 
 			// Start recording commands
@@ -603,15 +549,6 @@ namespace VkApplication {
 			vkCmdDrawIndexed(GbufferCommandBuffer[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			vkCmdNextSubpass(GbufferCommandBuffer[i], VK_SUBPASS_CONTENTS_INLINE);
-
-			//diffuse
-			vkCmdBindPipeline(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.diffuse);
-
-			vkCmdBindDescriptorSets(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[i], 0, nullptr);
-			vkCmdBindVertexBuffers(GbufferCommandBuffer[i], 0, 1, vertexBuffers, offsets);
-
-			vkCmdBindIndexBuffer(GbufferCommandBuffer[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(GbufferCommandBuffer[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
 			// End the picking render pass
 			vkCmdEndRenderPass(GbufferCommandBuffer[i]);

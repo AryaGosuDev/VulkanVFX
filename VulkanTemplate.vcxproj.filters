@@ -94,9 +94,9 @@
     <None Include="shaders\gbuffer_albedo.vert" />
     <None Include="shaders\gbuffer_depthInfo.frag" />
     <None Include="shaders\gbuffer_depthInfo.vert" />
-    <None Include="shaders\gbuffer_diffuse.frag" />
-    <None Include="shaders\gbuffer_diffuse.vert" />
     <None Include="shaders\gbuffer_normals.frag" />
     <None Include="shaders\gbuffer_normals.vert" />
+    <None Include="shaders\gbuffer_worldCoord.frag" />
+    <None Include="shaders\gbuffer_worldCoord.vert" />
   </ItemGroup>
 </Project>

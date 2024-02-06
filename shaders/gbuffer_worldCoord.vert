@@ -12,9 +12,11 @@ layout (location = 0 ) in vec3 color;
 layout (location = 1 ) in vec3 VertexNormal;
 layout (location = 2 ) in vec3 position;
 
-layout (location = 0 ) out vec3 fragColor;
+layout (location = 0 ) out vec3 Position; // adding position, so we know where we are
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * Position ;
-    fragColor = color;
+
+    vec4 worldPosition = ubo.model * vec4(position, 1.0);
+    Position = worldPosition.xyz ;
+    gl_Position = gl_Position = ubo.proj * ubo.view * worldPosition;
 }

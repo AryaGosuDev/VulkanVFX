@@ -314,7 +314,6 @@ struct {
 	VkPipeline albedo;
 	VkPipeline normals;
 	VkPipeline depthInfo;
-	VkPipeline diffuse;
 } GBufferPipelines;
 
 struct KeyControls {
@@ -578,10 +577,6 @@ private:
 	VkImage NormalsImage;
 	VkImageView NormalsImageView;
 	VkDeviceMemory NormalsImageMemory;
-
-	VkImage DiffuseImage;
-	VkImageView DiffuseImageView;
-	VkDeviceMemory DiffuseImageMemory;
 
 	VkImage GBufferImageDepth;
 	VkImageView GBufferImageDepthView;
