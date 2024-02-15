@@ -156,25 +156,43 @@ namespace VkApplication {
 		}
 	}
 
+	struct VertexIndex {
+		int position;
+		int normal;
+
+		bool operator==(const VertexIndex& other) const {
+			return position == other.position && normal == other.normal;
+		}
+	};
+
+	// Define a hash functor for VertexIndex
+	struct VertexIndexHash {
+		size_t operator()(VertexIndex const& vertexIndex) const {
+			size_t h1 = std::hash<int>()(vertexIndex.position);
+			size_t h2 = std::hash<int>()(vertexIndex.normal);
+			return h1 ^ (h2 << 1); // Combine the hash values
+		}
+	};
+
 	void MainVulkApplication::loadModel() {
 
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
-        int numberOfPoints = 0;
+        size_t numberOfPoints = 0;
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, WORLD_PATH.c_str(), 0, true)) {
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, WORLD_PATH.c_str(), 0, true)) 
 			throw std::runtime_error(warn + err);
-		}
 
+		std::unordered_map<VertexIndex, uint32_t, VertexIndexHash,std::equal_to<VertexIndex> > vertexIndexToUniqueIndex;
+		
 		//WORLD
+		/*
 		for (const auto& shape : shapes) {
 			
 			objectHash.insert({ shape.name, numberOfPoints });
-			if (numberOfPoints == 0) std::cout << numberOfPoints << std::endl;
 			for (int i = 0; i < shape.mesh.indices.size(); i += 3) {
-
 				Vertex v1, v2, v3;
 
 				v1.pos = { attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 2] };
@@ -204,6 +222,39 @@ namespace VkApplication {
 				indices.push_back(numberOfPoints++);
 			}
 		}
+		*/
+
+		// creates a new vertex only if the unique combination of vertex pos and normal are unique.
+		// in vulkan, vertex buffers are input as a combination of vertex position and normals in one instance.
+		// there are no seperate buffers for vertex, normals and tex coords
+
+		for (const auto& shape : shapes) {
+			objectHash.insert({ shape.name, std::pair<size_t,size_t>(numberOfPoints,0) });
+			for (const auto& index : shape.mesh.indices) {
+				VertexIndex vertexIndex{ index.vertex_index, index.normal_index };
+				
+				if (vertexIndexToUniqueIndex.count(vertexIndex) == 0) {
+					
+					Vertex vertex;
+					vertex.pos = { attrib.vertices[3 * index.vertex_index + 0], 
+						           attrib.vertices[3 * index.vertex_index + 1], 
+								   attrib.vertices[3 * index.vertex_index + 2] };
+
+					vertex.vertexNormal = glm::vec3( attrib.normals[3 * index.normal_index + 0],
+													 attrib.normals[3 * index.normal_index + 1],
+													 attrib.normals[3 * index.normal_index + 2]);
+
+					vertices.push_back(vertex);
+					uint32_t newIndex = static_cast<uint32_t>(vertices.size()) - 1;
+					vertexIndexToUniqueIndex[vertexIndex] = newIndex;
+					indices.push_back(newIndex);
+				}
+				else indices.push_back(vertexIndexToUniqueIndex[vertexIndex]);
+			}
+			numberOfPoints += indices.size();
+			objectHash[shape.name].second = numberOfPoints ;
+		}
+		/*
 		numberOfPoints = 0;
 		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, WORLD_PATH_LOWPOLY.c_str(), 0, true)) {
 			throw std::runtime_error(warn + err);
@@ -245,7 +296,7 @@ namespace VkApplication {
 				indices_lowpoly.push_back(numberOfPoints++);
 			}
 		}
-
+		*/
 		std::ifstream World_AABB_File(WORLD_AABB_PATH);std::string line, cell;
 		// Check if file is opened successfully
 		if (!World_AABB_File.is_open()) {
@@ -265,7 +316,7 @@ namespace VkApplication {
 				cornerStr.erase(std::remove(cornerStr.begin(), cornerStr.end(), '\"'), cornerStr.end());
 				tempCooords.push_back(std::stof(cornerStr));
 				if (tempCooords.size() == 3) {
-					tempCorners.push_back(glm::vec3(tempCooords[0], tempCooords[1], tempCooords[2]));
+					tempCorners.push_back(glm::vec3(tempCooords[0], tempCooords[2], tempCooords[1]));
 					tempCooords.clear();
 				}
 			}
@@ -289,7 +340,7 @@ namespace VkApplication {
 				exit(-1);
 			}
 		}
-
+		
 		worldQuadTree = QuadTree(objectAABB);
 
 		/*

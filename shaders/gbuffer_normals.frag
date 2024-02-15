@@ -25,7 +25,7 @@ layout (location = 0) out vec4 outColor;
 void main() {
 	vec3 lightDirectionView = normalize ( lightPos - vec3(Position));
 	float lightDistance = length(lightPos - vec3(Position));
-
+	 
 	vec3 halfVector = normalize(lightDirectionView + vec3( vec3(ufbo.EyeDirection) - vec3(Position) )  );
 
 	float diffuse = max(0.0f, dot(Normal, lightDirectionView));

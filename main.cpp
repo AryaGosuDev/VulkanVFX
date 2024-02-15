@@ -49,7 +49,7 @@ namespace VkApplication {
 		_app->ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
 		copyView = _app->ubo.view;
-		_app->ubo.proj = glm::perspective(fov, _app->swapChainExtent.width / (float)_app->swapChainExtent.height, 0.1f, 20.0f);
+		_app->ubo.proj = glm::perspective(fov, _app->swapChainExtent.width / (float)_app->swapChainExtent.height, 0.5f, 20.0f);
 		_app->ubo.proj[1][1] *= -1.0f;
 		glm::mat3 viewMatrix3x3(_app->ubo.view * _app->ubo.model);
 		_app->ubo.normalMatrix = glm::inverseTranspose(viewMatrix3x3);
@@ -88,10 +88,6 @@ namespace VkApplication {
 			_app->ubo.lightPos.z += lightPositionz;
 			changeLightPos[2] = 0;
 		}
-		if (kick == true) {
-			_app->keyControl.kickParticle = true;
-			kick = false;
-		}
 	}
 
 	void mainLoop(VkApplication::MainVulkApplication* _app) {
@@ -105,6 +101,7 @@ namespace VkApplication {
 		while (!(WindowRes = glfwWindowShouldClose(_app->window))) {
 			glfwPollEvents();
 			updateUniformBuffer(_app);
+			_app->drawFrame();
 			
 		}
 		vkDeviceWaitIdle(_app->device);

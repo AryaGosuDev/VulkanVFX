@@ -23,7 +23,7 @@ void main() {
 	// Apply the reflect view matrix to the vertex position
     vec4 reflectVertexPosition = ubo.view * vec4(position, 1.0);
     Position = reflectVertexPosition.xyzw;
-
+     
     // Output the transformed vertex position
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
     // Perform any other necessary vertex shader calculations

@@ -104,18 +104,23 @@ namespace VkApplication {
 
             VkDescriptorImageInfo imageInfoAlbedo{};
             imageInfoAlbedo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfoAlbedo.imageView = AlbedoImageView;  // This is the reflection texture's image view
-            imageInfoAlbedo.sampler = textureSampler;  // This is a sampler object you've created
+            imageInfoAlbedo.imageView = gbufferImageViews[i].AlbedoImageView;
+            imageInfoAlbedo.sampler = textureSampler;
 
             VkDescriptorImageInfo imageInfoNormal{};
             imageInfoNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfoNormal.imageView = NormalsImageView;  // This is the reflection texture's image view
-            imageInfoNormal.sampler = textureSampler;  // This is a sampler object you've created
+            imageInfoNormal.imageView = gbufferImageViews[i].NormalsImageView;
+            imageInfoNormal.sampler = textureSampler; 
 
             VkDescriptorImageInfo imageInfoDepth{};
             imageInfoDepth.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfoDepth.imageView = DepthInfoImageView;  // This is the reflection texture's image view
-            imageInfoDepth.sampler = textureSampler;  // This is a sampler object you've created
+            imageInfoDepth.imageView = gbufferImageViews[i].DepthInfoImageView;
+            imageInfoDepth.sampler = textureSampler;  
+
+            VkDescriptorImageInfo imageInfoWC{}; //world coords
+            imageInfoWC.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfoWC.imageView = gbufferImageViews[i].WorldCoordImageView;
+            imageInfoWC.sampler = textureSampler;
 
             std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
 
@@ -145,7 +150,7 @@ namespace VkApplication {
 
             descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[3].dstSet = descriptorSets[i];
-            descriptorWrites[3].dstBinding = 1;
+            descriptorWrites[3].dstBinding = 3;
             descriptorWrites[3].dstArrayElement = 0;
             descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[3].descriptorCount = 1;
@@ -153,11 +158,19 @@ namespace VkApplication {
 
             descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[4].dstSet = descriptorSets[i];
-            descriptorWrites[4].dstBinding = 1;
+            descriptorWrites[4].dstBinding = 4;
             descriptorWrites[4].dstArrayElement = 0;
             descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[4].descriptorCount = 1;
             descriptorWrites[4].pImageInfo = &imageInfoDepth;
+
+            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[4].dstSet = descriptorSets[i];
+            descriptorWrites[4].dstBinding = 5;
+            descriptorWrites[4].dstArrayElement = 0;
+            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[4].descriptorCount = 1;
+            descriptorWrites[4].pImageInfo = &imageInfoWC;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }

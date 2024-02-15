@@ -54,7 +54,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-
 #ifdef _DEBUG
 constexpr bool enableValidationLayers = true;
 #else
@@ -110,98 +109,51 @@ namespace VkApplication {
 		Plane planes[6];
 	};
 
-struct Vertex {
-	glm::vec3 color;
-	glm::vec3 vertexNormal;
-	glm::vec3 pos;
-	glm::vec2 texCoord;
+	struct Vertex {
+		glm::vec3 color;
+		glm::vec3 vertexNormal;
+		glm::vec3 pos;
+		glm::vec2 texCoord;
 
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription = {};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		static VkVertexInputBindingDescription getBindingDescription() {
+			VkVertexInputBindingDescription bindingDescription = {};
+			bindingDescription.binding = 0;
+			bindingDescription.stride = sizeof(Vertex);
+			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-		return bindingDescription;
-	}
+			return bindingDescription;
+		}
 
-	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(4);
+		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+			std::vector<VkVertexInputAttributeDescription> attributeDescriptions(4);
 
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, color);
+			attributeDescriptions[0].binding = 0;
+			attributeDescriptions[0].location = 0;
+			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[0].offset = offsetof(Vertex, color);
 
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, vertexNormal);
+			attributeDescriptions[1].binding = 0;
+			attributeDescriptions[1].location = 1;
+			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[1].offset = offsetof(Vertex, vertexNormal);
 
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, pos);
+			attributeDescriptions[2].binding = 0;
+			attributeDescriptions[2].location = 2;
+			attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[2].offset = offsetof(Vertex, pos);
 
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
+			attributeDescriptions[3].binding = 0;
+			attributeDescriptions[3].location = 3;
+			attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
+			attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
 
-		return attributeDescriptions;
-	}
+			return attributeDescriptions;
+		}
 
-	bool operator==(const Vertex& other) const {
-		return pos == other.pos && color == other.color && vertexNormal == other.vertexNormal;
-	}
-};
-
-// Per-instance data block
-struct InstanceData {
-	glm::vec3 pos;
-	glm::vec3 rot;
-	uint32_t texIndex;
-	glm::vec3 instanceColor;
-
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription = {};
-		bindingDescription.binding = 1;
-		bindingDescription.stride = sizeof(InstanceData);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-
-		return bindingDescription;
-	}
-
-	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
-		std::vector<VkVertexInputAttributeDescription> attributeDescriptions(4);
-
-		attributeDescriptions[0].binding = 1;
-		attributeDescriptions[0].location = 4;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(InstanceData, pos);
-
-		attributeDescriptions[1].binding = 1;
-		attributeDescriptions[1].location = 5;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(InstanceData, rot);
-
-		attributeDescriptions[2].binding = 1;
-		attributeDescriptions[2].location = 6;
-		attributeDescriptions[2].format = VK_FORMAT_R32_SINT;
-		attributeDescriptions[2].offset = offsetof(InstanceData, texIndex);
-
-		attributeDescriptions[3].binding = 1;
-		attributeDescriptions[3].location = 7;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(InstanceData, instanceColor);
-
-		return attributeDescriptions;
-	}
-
-	bool operator==(const InstanceData& other) const {
-		return pos == other.pos && rot == other.rot && texIndex == other.texIndex && instanceColor == other.instanceColor;
-	}
-};
+		bool operator==(const Vertex& other) const {
+			return pos == other.pos && color == other.color && vertexNormal == other.vertexNormal;
+		}
+	};
 
 /*
 namespace std {
@@ -213,246 +165,263 @@ namespace std {
 }
 */
 
-class join_threads {
-	std::vector<std::thread>& threads;
+	class join_threads {
+		std::vector<std::thread>& threads;
 
-public :
-	explicit join_threads(std::vector<std::thread>& _threads) : threads(_threads) {}
-	~join_threads() {
-		for (unsigned  int i = 0; i < threads.size(); ++i) {
-			if (threads[i].joinable()) threads[i].join();
+	public :
+		explicit join_threads(std::vector<std::thread>& _threads) : threads(_threads) {}
+		~join_threads() {
+			for (unsigned  int i = 0; i < threads.size(); ++i) {
+				if (threads[i].joinable()) threads[i].join();
 
+			}
 		}
-	}
+	};
 
-};
-
-template<class T>
-class threadsafe_queue
-{
-private:
-	mutable std::mutex mut;
-	std::queue<T> data_queue;
-	std::condition_variable data_cond;
-public:
-	threadsafe_queue() = default;
-
-	void push(T new_value) {
-		std::lock_guard<std::mutex> lk(mut);
-		data_queue.push(std::move(new_value));
-		data_cond.notify_one();
-	}
-
-	void wait_and_pop(T& value) {
-		std::unique_lock<std::mutex> lk(mut);
-		data_cond.wait(lk, [this] {return !data_queue.empty(); });
-		value = std::move(data_queue.front());
-		data_queue.pop();
-	}
-
-	std::shared_ptr<T> wait_and_pop() {
-		std::unique_lock<std::mutex> lk(mut);
-		data_cond.wait(lk, [this] {return !data_queue.empty(); });
-		std::shared_ptr<T> res( std::make_shared<T>(std::move(data_queue.front())));
-		data_queue.pop();
-		return res;
-	}
-
-	bool try_pop(T& value) {
-		std::lock_guard<std::mutex> lk(mut);
-		if (data_queue.empty())
-			return false;
-		value = std::move(data_queue.front());
-		data_queue.pop();
-	}
-
-	std::shared_ptr<T> try_pop() {
-		std::lock_guard<std::mutex> lk(mut);
-		if (data_queue.empty())
-			return std::shared_ptr<T>();
-		std::shared_ptr<T> res(
-			std::make_shared<T>(std::move(data_queue.front())));
-		data_queue.pop();
-		return res;
-	}
-
-	bool empty() const
+	template<class T>
+	class threadsafe_queue
 	{
-		std::lock_guard<std::mutex> lk(mut);
-		return data_queue.empty();
-	}
-};
+	private:
+		mutable std::mutex mut;
+		std::queue<T> data_queue;
+		std::condition_variable data_cond;
+	public:
+		threadsafe_queue() = default;
 
-
-
-struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-	glm::mat4 normalMatrix;
-	glm::vec4 lightPos;
-};
-
-struct UniformFragmentObject {
-	glm::vec4 Ambient;
-	glm::vec4 LightColor;
-	float Reflectivity;
-	float Strength;
-	glm::vec4 EyeDirection;
-	float ConstantAttenuation;
-	float LinearAttenuation;
-	float QuadraticAttenuation;
-	glm::mat4 viewMatrix;
-	glm::mat4 eyeViewMatrix;
-};
-
-struct PushConstants {
-	int useReflectionSampler;
-};
-
-struct {
-	VkPipeline albedo;
-	VkPipeline normals;
-	VkPipeline depthInfo;
-} GBufferPipelines;
-
-struct KeyControls {
-	bool kickParticle = false;
-};
-
-struct thread_pool_frustrum_culling;
-
-struct AABB {
-	glm::vec3 min;
-	glm::vec3 max;
-	AABB() = default;
-	AABB(glm::vec3 _v1, glm::vec3 _v2, glm::vec3 _v3, glm::vec3 _v4, glm::vec3 _v5, glm::vec3 _v6, glm::vec3 _v7, glm::vec3 _v8) {
-		std::vector<glm::vec3> samples = { _v1, _v2, _v3 ,_v4 ,_v5 ,_v6 ,_v7 ,_v8 };
-		min = _v1; max = _v1;
-		for (int i = 1; i < 8; ++i) {
-			min.x = std::min(min.x, samples[i].x);
-			min.y = std::min(min.y, samples[i].y);
-			min.z = std::min(min.z, samples[i].z);
-
-			max.x = std::max(max.x, samples[i].x);
-			max.y = std::max(max.y, samples[i].y);
-			max.z = std::max(max.z, samples[i].z);
+		void push(T new_value) {
+			std::lock_guard<std::mutex> lk(mut);
+			data_queue.push(std::move(new_value));
+			data_cond.notify_one();
 		}
-	}
-	AABB(glm::vec3 _min, glm::vec3 _max) : min(_min), max(_max) {}
-};
 
-
-struct QuadTreeNode {
-	QuadTreeNode() = default;
-	AABB box;
-	bool isLeaf;
-	std::vector<std::string> objectIDs;
-	QuadTreeNode* children[4] = { NULL, NULL, NULL, NULL };
-};
-
-class QuadTree {
-
-public:
-	QuadTree() = default;
-	QuadTree(std::unordered_map<std::string, AABB> objectAABB) {
-		if (root == NULL) {
-			root = new QuadTreeNode();
-			root->box = constructTotalAABB(objectAABB);
-			for (auto& v : objectAABB) root->objectIDs.push_back(v.first);
+		void wait_and_pop(T& value) {
+			std::unique_lock<std::mutex> lk(mut);
+			data_cond.wait(lk, [this] {return !data_queue.empty(); });
+			value = std::move(data_queue.front());
+			data_queue.pop();
 		}
-		createTree(root, objectAABB);
-	}
-	QuadTree& operator = (QuadTree& other) {
-		this->root = other.root;
-	}
-	QuadTree& operator = (QuadTree&& other) noexcept {
-		if (this != &other) {
+
+		std::shared_ptr<T> wait_and_pop() {
+			std::unique_lock<std::mutex> lk(mut);
+			data_cond.wait(lk, [this] {return !data_queue.empty(); });
+			std::shared_ptr<T> res( std::make_shared<T>(std::move(data_queue.front())));
+			data_queue.pop();
+			return res;
+		}
+
+		bool try_pop(T& value) {
+			std::lock_guard<std::mutex> lk(mut);
+			if (data_queue.empty())
+				return false;
+			value = std::move(data_queue.front());
+			data_queue.pop();
+		}
+
+		std::shared_ptr<T> try_pop() {
+			std::lock_guard<std::mutex> lk(mut);
+			if (data_queue.empty())
+				return std::shared_ptr<T>();
+			std::shared_ptr<T> res(
+				std::make_shared<T>(std::move(data_queue.front())));
+			data_queue.pop();
+			return res;
+		}
+
+		bool empty() const
+		{
+			std::lock_guard<std::mutex> lk(mut);
+			return data_queue.empty();
+		}
+	};
+
+	struct UniformBufferObject {
+		glm::mat4 model;
+		glm::mat4 view;
+		glm::mat4 proj;
+		glm::mat4 normalMatrix;
+		glm::vec4 lightPos;
+	};
+
+	struct UniformFragmentObject {
+		glm::vec4 Ambient;
+		glm::vec4 LightColor;
+		float Reflectivity;
+		float Strength;
+		glm::vec4 EyeDirection;
+		float ConstantAttenuation;
+		float LinearAttenuation;
+		float QuadraticAttenuation;
+		glm::mat4 viewMatrix;
+		glm::mat4 eyeViewMatrix;
+	};
+
+	struct PushConstants {
+		int useReflectionSampler;
+	};
+
+	struct {
+		VkPipeline albedo;
+		VkPipeline normals;
+		VkPipeline depthInfo;
+		VkPipeline worldCoord;
+	} GBufferPipelines;
+
+	struct GbufferImageViews{
+		VkImage AlbedoImage;
+		VkImageView AlbedoImageView;
+		VkDeviceMemory AlbedoImageMemory;
+
+		VkImage DepthInfoImage;
+		VkImageView DepthInfoImageView;
+		VkDeviceMemory DepthInfoImageMemory;
+
+		VkImage NormalsImage;
+		VkImageView NormalsImageView;
+		VkDeviceMemory NormalsImageMemory;
+
+		VkImage WorldCoordImage;
+		VkImageView WorldCoordImageView;
+		VkDeviceMemory WorldCoordImageMemory;
+
+		VkImage GBufferImageDepth;
+		VkImageView GBufferImageDepthView;
+		VkDeviceMemory GBufferImageDepthMemory;
+
+	} ;
+
+	struct thread_pool_frustrum_culling;
+
+	struct AABB {
+		glm::vec3 min;
+		glm::vec3 max;
+		AABB() = default;
+		AABB(glm::vec3 _v1, glm::vec3 _v2, glm::vec3 _v3, glm::vec3 _v4, glm::vec3 _v5, glm::vec3 _v6, glm::vec3 _v7, glm::vec3 _v8) {
+			std::vector<glm::vec3> samples = { _v1, _v2, _v3 ,_v4 ,_v5 ,_v6 ,_v7 ,_v8 };
+			min = _v1; max = _v1;
+			for (int i = 1; i < 8; ++i) {
+				min.x = std::min(min.x, samples[i].x);
+				min.y = std::min(min.y, samples[i].y);
+				min.z = std::min(min.z, samples[i].z);
+
+				max.x = std::max(max.x, samples[i].x);
+				max.y = std::max(max.y, samples[i].y);
+				max.z = std::max(max.z, samples[i].z);
+			}
+		}
+		AABB(glm::vec3 _min, glm::vec3 _max) : min(_min), max(_max) {}
+	};
+
+
+	struct QuadTreeNode {
+		QuadTreeNode() = default;
+		AABB box;
+		bool isLeaf;
+		std::vector<std::string> objectIDs;
+		QuadTreeNode* children[4] = { NULL, NULL, NULL, NULL };
+	};
+
+	class QuadTree {
+
+	public:
+		QuadTree() = default;
+		QuadTree(std::unordered_map<std::string, AABB> & objectAABB) {
+			if (root == NULL) {
+				root = new QuadTreeNode();
+				root->box = constructTotalAABB(objectAABB);
+				for (auto& v : objectAABB) root->objectIDs.push_back(v.first);
+			}
+			createTree(root, objectAABB);
+		}
+		QuadTree& operator = (QuadTree& other) {
 			this->root = other.root;
-			other.root = NULL;
 		}
-		return *this;
-	}
-	~QuadTree() {}
+		QuadTree& operator = (QuadTree&& other) noexcept {
+			if (this != &other) {
+				this->root = other.root;
+				other.root = NULL;
+			}
+			return *this;
+		}
+		~QuadTree() {}
 
-	QuadTreeNode* returnRoot() { return root; }
+		QuadTreeNode* returnRoot() { return root; }
 
-	bool intersects(const AABB& a, const AABB& b) {
-		return (a.min.x <= b.max.x && a.max.x >= b.min.x) &&
-			(a.min.z <= b.max.z && a.max.z >= b.min.z);
-	}
+		bool intersects(const AABB& a, const AABB& b) {
+			return (a.min.x <= b.max.x && a.max.x >= b.min.x) &&
+				(a.min.z <= b.max.z && a.max.z >= b.min.z);
+		}
 
-	void createTree(QuadTreeNode* node, std::unordered_map<std::string, AABB>& objectAABB) {
-		if (node == NULL) return;
-		//create quads
-		if (node->objectIDs.size() > THRESHOLD) {
-			//split aabb into 4 quads
-			AABB& currentAABB = node->box;
-			float midX = (currentAABB.max.x + currentAABB.min.x) / 2.0f;
-			float midZ = (currentAABB.max.z + currentAABB.min.z) / 2.0f;
-			node->children[0] = new QuadTreeNode(); node->children[1] = new QuadTreeNode();
-			node->children[2] = new QuadTreeNode(); node->children[3] = new QuadTreeNode();
-			node->children[0]->box = AABB(currentAABB.min, glm::vec3(midX, currentAABB.max.y, midZ));
-			node->children[1]->box = AABB(glm::vec3(midX, currentAABB.min.y, currentAABB.min.z),
-				glm::vec3(currentAABB.max.x, currentAABB.max.y, midZ));
-			node->children[2]->box = AABB(glm::vec3(currentAABB.min.x, currentAABB.min.y, midZ),
-				glm::vec3(midX, currentAABB.max.y, currentAABB.max.z));
-			node->children[3]->box = AABB(glm::vec3(midX, currentAABB.min.y, midZ),
-				currentAABB.max);
+		void createTree(QuadTreeNode* node, std::unordered_map<std::string, AABB>& objectAABB) {
+			if (node == NULL) return;
+			//create quads
+			if (node->objectIDs.size() > THRESHOLD) {
+				//split aabb into 4 quads
+				AABB& currentAABB = node->box;
+				float midX = (currentAABB.max.x + currentAABB.min.x) / 2.0f;
+				float midZ = (currentAABB.max.z + currentAABB.min.z) / 2.0f;
+				node->children[0] = new QuadTreeNode(); node->children[1] = new QuadTreeNode();
+				node->children[2] = new QuadTreeNode(); node->children[3] = new QuadTreeNode();
+				node->children[0]->box = AABB(currentAABB.min, glm::vec3(midX, currentAABB.max.y, midZ));
+				node->children[1]->box = AABB(glm::vec3(midX, currentAABB.min.y, currentAABB.min.z),
+					glm::vec3(currentAABB.max.x, currentAABB.max.y, midZ));
+				node->children[2]->box = AABB(glm::vec3(currentAABB.min.x, currentAABB.min.y, midZ),
+					glm::vec3(midX, currentAABB.max.y, currentAABB.max.z));
+				node->children[3]->box = AABB(glm::vec3(midX, currentAABB.min.y, midZ),
+					currentAABB.max);
 
-			std::unordered_set<std::string> tempIDs(std::begin(node->objectIDs), std::end(node->objectIDs));
+				std::unordered_set<std::string> tempIDs(std::begin(node->objectIDs), std::end(node->objectIDs));
 
-			for (size_t i = 0; i < 4; ++i) {
-				std::vector<std::string> objectsToAdd;
-				for (auto& aabbObject : tempIDs) {
-					if (intersects(node->children[i]->box, objectAABB[aabbObject])) {
-						node->children[i]->objectIDs.push_back(aabbObject);
-						objectsToAdd.push_back(aabbObject);
+				for (size_t i = 0; i < 4; ++i) {
+					std::vector<std::string> objectsToAdd;
+					for (auto& aabbObject : tempIDs) {
+						if (intersects(node->children[i]->box, objectAABB[aabbObject])) {
+							node->children[i]->objectIDs.push_back(aabbObject);
+							objectsToAdd.push_back(aabbObject);
+						}
+					}
+					for (auto& v : objectsToAdd) tempIDs.erase(v);
+				}
+
+				for (size_t i = 0; i < 4; ++i) {
+					if (node->children[i]->objectIDs.size() != 0 && node->children[i]->objectIDs.size() != node->objectIDs.size())
+						createTree(node->children[i], objectAABB);
+					else {
+						delete node->children[i]; node->children[i] = NULL;
 					}
 				}
-				for (auto& v : objectsToAdd) tempIDs.erase(v);
-			}
-
-			for (size_t i = 0; i < 4; ++i) {
-				if (node->children[i]->objectIDs.size() != 0 && node->children[i]->objectIDs.size() != node->objectIDs.size())
-					createTree(node->children[i], objectAABB);
-				else {
-					delete node->children[i]; node->children[i] = NULL;
+				int numNull = 0;
+				for (size_t i = 0; i < 4; ++i) {
+					if (node->children[i] == NULL) numNull++;
 				}
+				if (numNull == 4) node->isLeaf = true;
 			}
-			int numNull = 0;
-			for (size_t i = 0; i < 4; ++i) {
-				if (node->children[i] == NULL) numNull++;
-			}
-			if (numNull == 4) node->isLeaf = true;
-		}
-	}
-
-private:
-	QuadTreeNode* root = NULL;
-	const int THRESHOLD = 10;
-
-	AABB constructTotalAABB(const std::unordered_map<std::string, AABB>& objectAABB) {
-		if (objectAABB.empty())
-			return AABB{};
-
-		auto iter = objectAABB.begin();
-		glm::vec3 globalMin = iter->second.min;
-		glm::vec3 globalMax = iter->second.max;
-
-		for (const auto& kv : objectAABB) {
-			globalMin.x = std::min(globalMin.x, kv.second.min.x);
-			globalMin.y = std::min(globalMin.y, kv.second.min.y);
-			globalMin.z = std::min(globalMin.z, kv.second.min.z);
-
-			globalMax.x = std::max(globalMax.x, kv.second.max.x);
-			globalMax.y = std::max(globalMax.y, kv.second.max.y);
-			globalMax.z = std::max(globalMax.z, kv.second.max.z);
 		}
 
-		return AABB{ globalMin, globalMax };
-	}
-};
+	private:
+		QuadTreeNode* root = NULL;
+		const int THRESHOLD = 10;
+
+		AABB constructTotalAABB(const std::unordered_map<std::string, AABB>& objectAABB) {
+			if (objectAABB.empty())
+				return AABB{};
+
+			auto iter = objectAABB.begin();
+			glm::vec3 globalMin = iter->second.min;
+			glm::vec3 globalMax = iter->second.max;
+
+			for (const auto& kv : objectAABB) {
+				globalMin.x = std::min(globalMin.x, kv.second.min.x);
+				globalMin.y = std::min(globalMin.y, kv.second.min.y);
+				globalMin.z = std::min(globalMin.z, kv.second.min.z);
+
+				globalMax.x = std::max(globalMax.x, kv.second.max.x);
+				globalMax.y = std::max(globalMax.y, kv.second.max.y);
+				globalMax.z = std::max(globalMax.z, kv.second.max.z);
+			}
+
+			return AABB{ globalMin, globalMax };
+		}
+	};
 
 class MainVulkApplication {
 
@@ -489,7 +458,6 @@ private:
 	
 	GLFWwindow* window;
 	ImGui_ImplVulkanH_Window imgui_window;
-	KeyControls keyControl;
 	Assimp::Importer importer;
 
 	VkInstance instance;
@@ -531,13 +499,14 @@ private:
 	std::vector<uint32_t> indices_lowpoly;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
+	VkBuffer vertexLowPolyBuffer;
+	VkDeviceMemory vertexLowPolyBufferMemory;
 	VkBuffer indexBuffer;
 	VkDeviceMemory indexBufferMemory;
-	VkBuffer vertexBuffer_lowpoly;
-	VkDeviceMemory vertexBufferMemory_lowpoly;
-	VkBuffer indexBuffer_lowpoly;
-	VkDeviceMemory indexBufferMemory_lowpoly;
-	std::unordered_map<std::string, int> objectHash;
+	VkBuffer indexLowPolyBuffer;
+	VkDeviceMemory indexLowPolyBufferMemory;
+	
+	std::unordered_map<std::string, std::pair<size_t,size_t>> objectHash;
 	std::unordered_map<std::string, int> objectHash_lowpoly;
 	std::unordered_map<std::string, AABB > objectAABB;
 	std::unordered_set<std::string > objectsToRenderForFrame;
@@ -565,23 +534,8 @@ private:
 	bool framebufferResized = false;
 
 	//***************************** GBUFFER VARIABLES ****************************
-
-	VkImage AlbedoImage;
-	VkImageView AlbedoImageView;
-	VkDeviceMemory AlbedoImageMemory;
-
-	VkImage DepthInfoImage;
-	VkImageView DepthInfoImageView;
-	VkDeviceMemory DepthInfoImageMemory;
-
-	VkImage NormalsImage;
-	VkImageView NormalsImageView;
-	VkDeviceMemory NormalsImageMemory;
-
-	VkImage GBufferImageDepth;
-	VkImageView GBufferImageDepthView;
-	VkDeviceMemory GBufferImageMemory;
-	VkDeviceMemory GBufferImageDepthMemory;
+	
+	std::vector<GbufferImageViews> gbufferImageViews;
 
 	std::vector<VkFramebuffer> GBufferFramebuffer;
 	VkDescriptorSetLayout descriptorSetLayoutGBuffer;
@@ -591,15 +545,9 @@ private:
 	VkPipelineLayout GBufferPipelineLayout;
 	std::vector<VkDescriptorSet> descriptorSetGBuffer;
 
-	VkFence GBufferFence;
+	std::vector<VkFence> GBufferFence;
 	VkSemaphore renderStartSemaphoreGBuffer = 0;
 	VkSemaphore renderCompleteSemaphoreGBuffer = 0;
-
-	VkBuffer uniformBuffer_GBuffer;
-	VkDeviceMemory uniformBuffersMemory_GBuffer;
-
-	VkBuffer stagingBuffer_GBuffer;
-	VkDeviceMemory stagingBufferMemory_GBuffer;
 
 	QuadTree worldQuadTree;
 	thread_pool_frustrum_culling * FrustCullThreadPool;
@@ -641,9 +589,11 @@ private:
 	void createFramebuffers();
 
 	void createVertexBuffer();
+	void createVertexLowPolyBuffer();
 	void createBuffer(VkDeviceSize, VkBufferUsageFlags,
 		VkMemoryPropertyFlags, VkBuffer&, VkDeviceMemory&);
 	void createIndexBuffer();
+	void createIndexLowPolyBuffer();
 	void createUniformBuffers();
 	void createDescriptorPool();
 	void createDescriptorSets();
@@ -673,7 +623,7 @@ private:
 	void GbufferRenderPipelineSetup();
 	void createDescriptorSetGBuffer();
 	void setupGBufferCommandBuffer();
-	void GBufferDraw();
+	void GBufferDraw(uint32_t& imageIndex);
 	void pruneGeo(const UniformBufferObject& _ubo, const QuadTreeNode* const _node,
 		std::unordered_set<std::string >& objectsToRenderForFrame, const std::unordered_map<std::string, AABB >& objectAABB);
 
@@ -699,17 +649,20 @@ private:
 		//createTextureImageView();
 		createTextureSampler();
 
+		GbufferRenderPipelineSetup();
+
 		loadModel();
 		createVertexBuffer();
 		createIndexBuffer();
+		//createVertexLowPolyBuffer();
+		//createIndexLowPolyBuffer();
 		createUniformBuffers();
 		createDescriptorPool();
 		createDescriptorSets();
 		createImguiContext();
 		createCommandBuffers();
 		createSyncObjects();
-
-		GbufferRenderPipelineSetup();
+		
 		createDescriptorSetGBuffer();
 		setupGBufferCommandBuffer();
 	}

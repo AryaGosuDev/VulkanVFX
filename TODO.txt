@@ -1,8 +1,10 @@
 - fix axis corellation between blender geo and app
 
+- write deconstructor to quadTree class
+
 - test multi threaded frustrum culling
 
-- write shaders
+- write shader for main animation
 
 - shadow mapping
 
