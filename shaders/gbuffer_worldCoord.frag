@@ -16,7 +16,7 @@ layout(set = 0, binding = 1) uniform UniformFragBufferObject {
 layout (location = 0) in vec3 Position;
 
 layout (location = 0) out vec3 outPosition;
-
+ 
 void main() {
 	outPosition = Position ;
 }

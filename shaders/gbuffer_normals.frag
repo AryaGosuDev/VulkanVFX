@@ -18,8 +18,7 @@ layout (location = 1 ) in vec3 Normal;
 layout (location = 2 ) in vec4 Position;
 layout (location = 3 ) in vec3 lightPos;
 layout (location = 4 ) in vec3 NormalView;
-layout (location = 5 ) in vec2 texCoords;
-
+ 
 layout (location = 0) out vec4 outColor;
 
 void main() {

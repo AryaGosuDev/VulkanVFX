@@ -86,10 +86,11 @@
     <ClInclude Include="VulkanGBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanLightDepth.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\shader_base.frag" />
-    <None Include="shaders\shader_base.vert" />
     <None Include="shaders\gbuffer_albedo.frag" />
     <None Include="shaders\gbuffer_albedo.vert" />
     <None Include="shaders\gbuffer_depthInfo.frag" />
@@ -98,5 +99,9 @@
     <None Include="shaders\gbuffer_normals.vert" />
     <None Include="shaders\gbuffer_worldCoord.frag" />
     <None Include="shaders\gbuffer_worldCoord.vert" />
+    <None Include="shaders\shader_base.frag" />
+    <None Include="shaders\shader_base.vert" />
+    <None Include="shaders\shader_base_debug.frag" />
+    <None Include="shaders\shader_base_debug.vert" />
   </ItemGroup>
 </Project>

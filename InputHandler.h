@@ -7,17 +7,22 @@
 #include <vulkan/vulkan.h>
 
 bool stopAnimation = true;
-int motionMode = 0;
 bool selectMode = false;
 bool motionFlying = false;
+bool motionMoving = false;
 bool kick = false;
 double startX = 0;
-double startY = 0;
+double startY = 0; 
 
 bool lbutton_down = false;
 
+bool firstMouse = true;
+double lastX = 0.0, lastY = 0.0;
+float sensitivity = 0.1f;
+
 double pointx;
 double pointy;
+bool forwardMovement = true;
 
 bool activateTrans = false;
 
@@ -32,14 +37,19 @@ double phi = 0.0;
 GLfloat zdistance = 0.0f;
 
 void readInput_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-		stopAnimation = !stopAnimation;
+
+	if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+		forwardMovement = true;
+		motionMoving = true;
 	}
-	else if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-		//    kill( getpid(), SIGHUP );
-		exit(0);
+	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+		forwardMovement = false;
+		motionMoving = true;
 	}
 
+	else if (key == GLFW_KEY_Q && action == GLFW_PRESS) 
+		exit(0);
+	
 	else if (key == GLFW_KEY_E && action == GLFW_PRESS) {
 		lightPositiony = lightPositionIncrement;
 		changeLightPos[1] = 1;
@@ -69,41 +79,29 @@ void readInput_callback(GLFWwindow* window, int key, int scancode, int action, i
 		lightPositionz = lightPositionIncrement;
 		changeLightPos[2] = 1;
 	}
-
-	else if (key == GLFW_KEY_M && action == GLFW_PRESS) {
-		motionMode++;
-		if (motionMode == 3) motionMode = 0;
-
-	}
-	else if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-		kick = true;
-	}
 }
 
 void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos) {
-	pointx = xpos;
-	pointy = ypos;
-	//std::cout << motionMode << std::endl;
+	if (firstMouse) {
+		lastX = xpos; lastY = ypos; firstMouse = false;
+	}
 
-	if (lbutton_down && motionMode == 0) {
+	if (lbutton_down) {
 
-		phi += (xpos - startX) / 100.0 ;
-		startX = xpos;
-		theta += (ypos - startY) / 100.0 ;
-		startY = ypos;
-		//std::cout << phi << std::endl;
+		double xOffset = xpos - lastX; double yOffset = lastY - ypos; 
+		xOffset *= sensitivity; yOffset *= sensitivity;
+
+		phi += xOffset; theta += yOffset;
+		// clamp to prevent flip
+		theta = std::max(std::min(theta, 89.0), -89.0);
+		lastX = xpos; lastY = ypos;
 	}
-	else if (lbutton_down && motionMode == 1) {
-		selectMode = true;
-	}
-	else if (motionMode == 1) {
-		selectMode = false;
-	}
+	else  firstMouse = true; 
 }
  
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 
-	if (button == GLFW_MOUSE_BUTTON_LEFT && motionMode == 0 ) {
+	if (button == GLFW_MOUSE_BUTTON_LEFT ) {
 		if (GLFW_PRESS == action) {
 			lbutton_down = true;
 			startX = pointx;

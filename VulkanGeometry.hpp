@@ -1,41 +1,69 @@
 #ifndef __VK_GEOMETRY_HPP__
 #define __VK_GEOMETRY_HPP__
 
+#define EPS 1e-6
+
 namespace VkApplication {
 
 	std::mutex writeHashTableLock;
 
-	struct thread_pool_frustrum_culling {
+	struct Thread_pool_frustrum_culling {
 		std::atomic_bool done;
 		threadsafe_queue<std::function<void()>> work_queue;
 		std::vector<std::thread> threads;
 		join_threads joiner;
 
+		std::mutex queue_mutex;
+		std::condition_variable finish_condition;
+		std::atomic<bool> start = false;
+		std::atomic<int> tasks_in_progress = 0;
+
 		void worker_thread() {
 			while (!done) {
 				std::function<void()> task;
-				if (work_queue.try_pop(task)) task();
+				if (work_queue.try_pop(task)) {
+					task();
+					tasks_in_progress--;
+					
+				}
 				else std::this_thread::yield();
+				finish_condition.notify_all();
 			}
 		}
 
-		thread_pool_frustrum_culling() : done(false), joiner(threads) {
-			unsigned const thread_count = std::thread::hardware_concurrency();
-
+		Thread_pool_frustrum_culling() : done(false), joiner(threads) {
+			unsigned thread_count = std::thread::hardware_concurrency();
+			//thread_count = 1;
 			try {
 				for (size_t i = 0; i < thread_count; ++i)
-					threads.push_back(std::thread(&thread_pool_frustrum_culling::worker_thread, this));
+					threads.push_back(std::thread(&Thread_pool_frustrum_culling::worker_thread, this));
 			}
 			catch (...) {
-				done = true; throw;
+				done = true; throw("Error in thread_pool_frustrum_culling : Ending thread");
 			}
 		}
 
-		~thread_pool_frustrum_culling() { done = true; }
+		~Thread_pool_frustrum_culling() { done = true; }
 
 		template<class FT>
 		void submit(FT f) {
 			work_queue.push(std::function<void()>(f));
+			tasks_in_progress++;
+		}
+
+		void join_all() {
+			done = true;
+			for (size_t i = 0; i < threads.size(); ++i) {
+				if (threads[i].joinable()) {
+					threads[i].join();
+				}
+			}
+		}
+
+		void waitUntilDone() {
+			std::unique_lock<std::mutex> lock(queue_mutex);
+			finish_condition.wait(lock, [this]() { return start && work_queue.empty() && tasks_in_progress == 0; });
+			start = false;
 		}
 	};
 
@@ -79,80 +107,111 @@ namespace VkApplication {
 		}
 	}
 
-	inline bool isOutsidePlane(const AABB& box, const Plane& plane) {
-		glm::vec3 positiveVertex = box.min;
-		glm::vec3 negativeVertex = box.max;
+	inline bool isAABBOutsidePlane(const AABB& box, const Plane& plane) {
+		// Count vertices outside the plane
+		int outsideVertices = 0;
 
-		if (plane.normal.x >= 0) {
-			positiveVertex.x = box.max.x;
-			negativeVertex.x = box.min.x;
-		}
-		if (plane.normal.y >= 0) {
-			positiveVertex.y = box.max.y;
-			negativeVertex.y = box.min.y;
-		}
-		if (plane.normal.z >= 0) {
-			positiveVertex.z = box.max.z;
-			negativeVertex.z = box.min.z;
+		// List all eight vertices of the AABB
+		std::vector<glm::vec3> vertices = {
+			glm::vec3(box.min.x, box.min.y, box.min.z),
+			glm::vec3(box.min.x, box.min.y, box.max.z),
+			glm::vec3(box.min.x, box.max.y, box.min.z),
+			glm::vec3(box.min.x, box.max.y, box.max.z),
+			glm::vec3(box.max.x, box.min.y, box.min.z),
+			glm::vec3(box.max.x, box.min.y, box.max.z),
+			glm::vec3(box.max.x, box.max.y, box.min.z),
+			glm::vec3(box.max.x, box.max.y, box.max.z)
+		};
+
+		// Check each vertex to see if it is outside the plane
+		for (const auto& vertex : vertices) {
+			double dotDistance = glm::dot(plane.normal, vertex);
+			//if (glm::dot(plane.normal, vertex) + plane.d > 0.0f) {
+			if (dotDistance + plane.d < -EPS) {
+				outsideVertices++;
+			}
 		}
 
-		// If the negative vertex is outside, the whole AABB is outside the plane
-		if (glm::dot(plane.normal, negativeVertex) + plane.d > 0) {
-			return true;
+		// If all vertices are outside the plane, the AABB is outside this plane
+		return outsideVertices == 8;
+	}
+
+
+	inline bool isAABBOutsideFrustum(const AABB& box, const Frustrum& frustum) {
+		// Check if the AABB is outside any of the frustum planes
+		for (const auto& plane : frustum.planes) {
+			if (isAABBOutsidePlane(box, plane)) {
+				// If the AABB is outside one plane, it's outside the frustum
+				return true;
+			}
 		}
 
-		// Even if the positive vertex is outside, the AABB still might intersect the plane
+		// The AABB is not outside any of the planes, so it's at least partially inside the frustum
 		return false;
 	}
 
 	inline bool intersectsFrustum(const AABB& box, const Frustrum& frustum) {
-		
-		for (const Plane& plane : frustum.planes) {
-			if (isOutsidePlane(box, plane)) {
-				return false; // the box is outside of this plane
-			}
-		}
+		if (isAABBOutsideFrustum(box, frustum)) return false;
 		return true; // the box is inside all planes
 	}
 
-	void MainVulkApplication::pruneGeo(const UniformBufferObject& _ubo, const QuadTreeNode * const _node,
-		std::unordered_set<std::string >& objectsToRenderForFrame, const std::unordered_map<std::string, AABB >& objectAABB) {
+	void MainVulkApplication::pruneGeo(const glm::mat4 proj, const glm::mat4 view, std::shared_ptr< const QuadTreeNode* const> _node) {
 
-		if (_node == NULL) return;
+		if ((*_node) == NULL) return;
 
-		glm::mat4 clipMatrix = _ubo.proj * _ubo.view;
+		glm::mat4 tempProj = proj;
+		glm::mat4 tempView = view;
+		tempProj[1][1] *= -1.0f;
+
+		glm::mat4 clipMatrix = tempProj * tempView;
 		glm::vec4 planes[6];
+
+		glm::vec4 rowX = glm::row(clipMatrix, 0);
+		glm::vec4 rowY = glm::row(clipMatrix, 1);
+		glm::vec4 rowZ = glm::row(clipMatrix, 2);
+		glm::vec4 rowW = glm::row(clipMatrix, 3);
+
 		// Left
-		planes[0] = clipMatrix[3] + clipMatrix[0];
+		planes[0] = rowW - rowX;
 		// Right
-		planes[1] = clipMatrix[3] - clipMatrix[0];
+		planes[1] = rowW + rowX;
 		// Bottom
-		planes[2] = clipMatrix[3] + clipMatrix[1];
+		planes[2] = rowW + rowY;
 		// Top
-		planes[3] = clipMatrix[3] - clipMatrix[1];
+		planes[3] = rowW - rowY;
 		// Near
-		planes[4] = clipMatrix[3] + clipMatrix[2];
+		planes[4] = rowW + rowZ;
 		// Far
-		planes[5] = clipMatrix[3] - clipMatrix[2];
+		planes[5] = rowW - rowZ;
 
 		Frustrum frustum;
 		// normalize
 		for (int i = 0; i < 6; ++i) {
-			planes[i] /= glm::length(glm::vec3(planes[i]));
+			double primeLength = glm::length(glm::vec3(planes[i]));
+			planes[i].x /= primeLength;
+			planes[i].y /= primeLength;
+			planes[i].z /= primeLength;
 			frustum.planes[i].normal = glm::vec3(planes[i]);
-			frustum.planes[i].d = planes[i].w;
+			frustum.planes[i].d = planes[i].w / primeLength;
 		}
 
-		if (intersectsFrustum(_node->box, frustum)) {
+		if (intersectsFrustum((*_node)->box, frustum)) {
 			{
-				std::lock_guard<std::mutex> lk(writeHashTableLock);
-				if (_node->isLeaf == true) {
-					for (auto& IDs : _node->objectIDs) objectsToRenderForFrame.insert(IDs);
+				if ((*_node)->isLeaf == true) {
+					std::lock_guard<std::mutex> lk(writeHashTableLock);
+					for (const auto& IDs : (*_node)->objectIDs) objectsToRenderForFrame.insert(IDs);
+				}
+				else {
+					for (QuadTreeNode* child : (*_node)->children) {
+						if (child != NULL) {
+							auto childShared = std::make_shared< const QuadTreeNode* const>(child);
+							FrustCullThreadPool->submit([=]() { pruneGeo(proj, view, childShared); });
+						}
+						
+					}
 				}
 			}
-			for (QuadTreeNode* child : _node->children) {
-				FrustCullThreadPool->submit([&]() { pruneGeo(_ubo, child, objectsToRenderForFrame, objectAABB); });
-			}
+			
 		}
 	}
 
@@ -180,7 +239,7 @@ namespace VkApplication {
         std::vector<tinyobj::shape_t> shapes;
         std::vector<tinyobj::material_t> materials;
         std::string warn, err;
-        size_t numberOfPoints = 0;
+        uint32_t numberOfPoints = 0;
 
 		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, WORLD_PATH.c_str(), 0, true)) 
 			throw std::runtime_error(warn + err);
@@ -229,7 +288,8 @@ namespace VkApplication {
 		// there are no seperate buffers for vertex, normals and tex coords
 
 		for (const auto& shape : shapes) {
-			objectHash.insert({ shape.name, std::pair<size_t,size_t>(numberOfPoints,0) });
+			uint32_t startIndices = indices.size();
+			objectHash.insert({ shape.name, std::pair<uint32_t,uint32_t>(startIndices,0) });
 			for (const auto& index : shape.mesh.indices) {
 				VertexIndex vertexIndex{ index.vertex_index, index.normal_index };
 				
@@ -251,8 +311,8 @@ namespace VkApplication {
 				}
 				else indices.push_back(vertexIndexToUniqueIndex[vertexIndex]);
 			}
-			numberOfPoints += indices.size();
-			objectHash[shape.name].second = numberOfPoints ;
+			uint32_t endIndices = indices.size();
+			objectHash[shape.name].second = endIndices - startIndices;
 		}
 		/*
 		numberOfPoints = 0;
@@ -297,6 +357,73 @@ namespace VkApplication {
 			}
 		}
 		*/
+
+		numberOfPoints = 0;
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, GROUND_PATH.c_str(), 0, true)) 
+			throw std::runtime_error(warn + err);
+		
+		//GROUND
+		for (const auto& shape : shapes) {
+
+			for (int i = 0; i < shape.mesh.indices.size(); i += 3) {
+
+				Vertex v1, v2, v3;
+
+				v1.pos = { attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 2] };
+				v2.pos = { attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 2] };
+				v3.pos = { attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 2] };
+
+				v1.color = { 1.0f, 1.0f, 1.0f };
+				v2.color = { 1.0f, 1.0f, 1.0f };
+				v3.color = { 1.0f, 1.0f, 1.0f };
+
+				glm::vec3 triNormal = glm::normalize(glm::cross((v2.pos - v1.pos), (v3.pos - v1.pos)));
+
+				v1.vertexNormal = v2.vertexNormal = v3.vertexNormal = triNormal;
+
+				vertices_ground.push_back(v1);
+				vertices_ground.push_back(v2);
+				vertices_ground.push_back(v3);
+
+				indices_ground.push_back(numberOfPoints++);
+				indices_ground.push_back(numberOfPoints++);
+				indices_ground.push_back(numberOfPoints++);
+			}
+		}
+
+		numberOfPoints = 0;
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, AVATAR_PATH.c_str(), 0, true))
+			throw std::runtime_error(warn + err);
+
+		//GROUND
+		for (const auto& shape : shapes) {
+
+			for (int i = 0; i < shape.mesh.indices.size(); i += 3) {
+
+				Vertex v1, v2, v3;
+
+				v1.pos = { attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 2] };
+				v2.pos = { attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 2] };
+				v3.pos = { attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 2] };
+
+				v1.color = { 1.0f, 1.0f, 1.0f };
+				v2.color = { 1.0f, 1.0f, 1.0f };
+				v3.color = { 1.0f, 1.0f, 1.0f };
+
+				glm::vec3 triNormal = glm::normalize(glm::cross((v2.pos - v1.pos), (v3.pos - v1.pos)));
+
+				v1.vertexNormal = v2.vertexNormal = v3.vertexNormal = triNormal;
+
+				vertices_avatar.push_back(v1);
+				vertices_avatar.push_back(v2);
+				vertices_avatar.push_back(v3);
+
+				indices_avatar.push_back(numberOfPoints++);
+				indices_avatar.push_back(numberOfPoints++);
+				indices_avatar.push_back(numberOfPoints++);
+			}
+		}
+
 		std::ifstream World_AABB_File(WORLD_AABB_PATH);std::string line, cell;
 		// Check if file is opened successfully
 		if (!World_AABB_File.is_open()) {

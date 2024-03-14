@@ -37,19 +37,39 @@ namespace VkApplication {
 	float QuadraticAttenuation = 0.0f;
 	glm::mat4 normalModelViewMatrix;
 
-	glm::vec3 mainEyeLoc(-6.0, 1.0, 0.0);
-	glm::vec3 centerLoc(0.0, 0.0, 0.0);
-	glm::vec3 up(0.0, 1.0, 0.0);
-	float fov = glm::radians<float>(90.0f);
+	glm::vec3 mainEyeLoc(6.0f, 1.0f, 0.0f);
+	glm::vec3 centerLoc(0.0f, 1.0f, 0.0f);
+	glm::vec3 up(0.0f, 1.0f, 0.0f);
+	glm::vec3 world_up(0.0f, 1.0f, 0.0f);
+	float fov = glm::radians<float>(45.0f);
 	glm::mat4 copyView;
 	glm::vec3 spindleAxis = glm::cross(mainEyeLoc, up);
+	glm::vec3 playerMovement = glm::vec3(0.0f, 0.0f, 0.0f);
+
+	glm::vec3 calculateFrontVector() {
+		glm::vec3 front;
+		front.x = cos(glm::radians(theta)) * cos(glm::radians(phi));
+		//front.y = sin(glm::radians(phi));
+		front.y = 0.0f;
+		front.z = sin(glm::radians(theta)) * cos(glm::radians(phi));
+		return glm::normalize(front);
+	}
+
+	void moveCharacter( float speed) {
+		glm::vec3 normalizedDirection = calculateFrontVector();
+		std::cout << normalizedDirection.x << " " << normalizedDirection.y << " " << normalizedDirection.z << std::endl;
+
+		mainEyeLoc += normalizedDirection * speed;
+		centerLoc  += normalizedDirection * speed;
+	}
 
 	//need to load in the value of the uniform buffers for the frag and vert shader + load attributes
 	void loadInitialVariables(VkApplication::MainVulkApplication* _app) {
 		_app->ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
 		copyView = _app->ubo.view;
-		_app->ubo.proj = glm::perspective(fov, _app->swapChainExtent.width / (float)_app->swapChainExtent.height, 0.5f, 20.0f);
+		//_app->ubo.proj = glm::perspective(fov, _app->swapChainExtent.width / (float)_app->swapChainExtent.height, 0.5f, 20.0f);
+		_app->ubo.proj = glm::perspective(fov, _app->swapChainExtent.width / (float)_app->swapChainExtent.height, 0.5f, 40.0f);
 		_app->ubo.proj[1][1] *= -1.0f;
 		glm::mat3 viewMatrix3x3(_app->ubo.view * _app->ubo.model);
 		_app->ubo.normalMatrix = glm::inverseTranspose(viewMatrix3x3);
@@ -73,6 +93,12 @@ namespace VkApplication {
 			mainEyeLoc.x = 6.0f * float(sin(theta)) * float(cos(phi));
 			mainEyeLoc.y = 6.0f * float(cos(theta));
 			mainEyeLoc.z = 6.0f * float(sin(theta)) * float(sin(phi));
+			_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
+		}
+
+		if (forwardMovement == true && motionMoving == true) {
+			moveCharacter(0.2);
+			motionMoving = false;
 			_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
 		}
 
@@ -102,7 +128,6 @@ namespace VkApplication {
 			glfwPollEvents();
 			updateUniformBuffer(_app);
 			_app->drawFrame();
-			
 		}
 		vkDeviceWaitIdle(_app->device);
 	}

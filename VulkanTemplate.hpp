@@ -34,6 +34,7 @@
 #include <glm/ext/scalar_constants.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+#include <glm/ext.hpp>
 
 #include "imgui/imgui.h"
 #include "imgui/imconfig.h"
@@ -73,16 +74,20 @@ static void check_vk_result(VkResult err) {
 namespace VkApplication {
 
 	//const std::string WORLD_PATH = "models/city.obj";
-	const std::string WORLD_PATH = "models/city_reduced.obj";
+	//const std::string WORLD_PATH = "models/city_reduced.obj";
+	const std::string WORLD_PATH = "models/simpleCubes.obj";
 	const std::string WORLD_PATH_LOWPOLY = "models/city_lowpoly.obj";
-	const std::string AVATAR_PATH = "models/Modern_Tarzan.gltf";
+	const std::string AVATAR_PATH = "models/avatar.obj";
 	const std::string TEXTURE_PATH = "";
 	//const std::string WORLD_AABB_PATH = "models/output_AABB.csv";
-	const std::string WORLD_AABB_PATH = "models/output_AABB_reduced.csv";
+	//const std::string WORLD_AABB_PATH = "models/output_AABB_reduced.csv";
+	const std::string WORLD_AABB_PATH = "models/output_AABB_SimpleCubes.csv";
+	const std::string GROUND_PATH = "models/ground.obj";
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 	const std::vector<const char*> deviceExtensions = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	//VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME
 	};
 
 	struct QueueFamilyIndices {
@@ -168,11 +173,13 @@ namespace std {
 	class join_threads {
 		std::vector<std::thread>& threads;
 
-	public :
+	public:
 		explicit join_threads(std::vector<std::thread>& _threads) : threads(_threads) {}
 		~join_threads() {
-			for (unsigned  int i = 0; i < threads.size(); ++i) {
-				if (threads[i].joinable()) threads[i].join();
+			for (unsigned int i = 0; i < threads.size(); ++i) {
+				if (threads[i].joinable()) {
+					threads[i].join();
+				}
 
 			}
 		}
@@ -194,27 +201,30 @@ namespace std {
 			data_cond.notify_one();
 		}
 
-		void wait_and_pop(T& value) {
+		bool wait_and_pop(T& value) {
 			std::unique_lock<std::mutex> lk(mut);
 			data_cond.wait(lk, [this] {return !data_queue.empty(); });
 			value = std::move(data_queue.front());
 			data_queue.pop();
+			return true;
 		}
 
 		std::shared_ptr<T> wait_and_pop() {
 			std::unique_lock<std::mutex> lk(mut);
 			data_cond.wait(lk, [this] {return !data_queue.empty(); });
-			std::shared_ptr<T> res( std::make_shared<T>(std::move(data_queue.front())));
+			std::shared_ptr<T> res(std::make_shared<T>(std::move(data_queue.front())));
 			data_queue.pop();
 			return res;
 		}
 
 		bool try_pop(T& value) {
+			//std::cout << "Trying to pop" << std::endl;
 			std::lock_guard<std::mutex> lk(mut);
 			if (data_queue.empty())
 				return false;
 			value = std::move(data_queue.front());
 			data_queue.pop();
+			return true;
 		}
 
 		std::shared_ptr<T> try_pop() {
@@ -240,6 +250,7 @@ namespace std {
 		glm::mat4 proj;
 		glm::mat4 normalMatrix;
 		glm::vec4 lightPos;
+		glm::mat4 orthoProj;
 	};
 
 	struct UniformFragmentObject {
@@ -289,7 +300,7 @@ namespace std {
 
 	} ;
 
-	struct thread_pool_frustrum_culling;
+	struct Thread_pool_frustrum_culling;
 
 	struct AABB {
 		glm::vec3 min;
@@ -311,11 +322,13 @@ namespace std {
 		AABB(glm::vec3 _min, glm::vec3 _max) : min(_min), max(_max) {}
 	};
 
-
 	struct QuadTreeNode {
 		QuadTreeNode() = default;
+		~QuadTreeNode() {
+			children[0] = children[1] = children[2] = children[3] = NULL;
+		}
 		AABB box;
-		bool isLeaf;
+		bool isLeaf = false;
 		std::vector<std::string> objectIDs;
 		QuadTreeNode* children[4] = { NULL, NULL, NULL, NULL };
 	};
@@ -324,7 +337,7 @@ namespace std {
 
 	public:
 		QuadTree() = default;
-		QuadTree(std::unordered_map<std::string, AABB> & objectAABB) {
+		QuadTree(std::unordered_map<std::string, AABB>& objectAABB) {
 			if (root == NULL) {
 				root = new QuadTreeNode();
 				root->box = constructTotalAABB(objectAABB);
@@ -361,6 +374,7 @@ namespace std {
 				float midZ = (currentAABB.max.z + currentAABB.min.z) / 2.0f;
 				node->children[0] = new QuadTreeNode(); node->children[1] = new QuadTreeNode();
 				node->children[2] = new QuadTreeNode(); node->children[3] = new QuadTreeNode();
+				// split box in 4 quadrants
 				node->children[0]->box = AABB(currentAABB.min, glm::vec3(midX, currentAABB.max.y, midZ));
 				node->children[1]->box = AABB(glm::vec3(midX, currentAABB.min.y, currentAABB.min.z),
 					glm::vec3(currentAABB.max.x, currentAABB.max.y, midZ));
@@ -372,20 +386,23 @@ namespace std {
 				std::unordered_set<std::string> tempIDs(std::begin(node->objectIDs), std::end(node->objectIDs));
 
 				for (size_t i = 0; i < 4; ++i) {
-					std::vector<std::string> objectsToAdd;
+
 					for (auto& aabbObject : tempIDs) {
 						if (intersects(node->children[i]->box, objectAABB[aabbObject])) {
 							node->children[i]->objectIDs.push_back(aabbObject);
-							objectsToAdd.push_back(aabbObject);
+
 						}
 					}
-					for (auto& v : objectsToAdd) tempIDs.erase(v);
+					// so if there are some aabb that are part of multiple aabbs, include them in both, leave commented
+					//for (auto& v : objectsToAdd) tempIDs.erase(v);
 				}
 
 				for (size_t i = 0; i < 4; ++i) {
-					if (node->children[i]->objectIDs.size() != 0 && node->children[i]->objectIDs.size() != node->objectIDs.size())
+
+					if (node->children[i]->objectIDs.size() != 0)
 						createTree(node->children[i], objectAABB);
-					else {
+					else if (node->children[i]->objectIDs.size() == 0) {
+						for (int j = 0; j < 4; ++j) node->children[i]->children[j] = NULL;
 						delete node->children[i]; node->children[i] = NULL;
 					}
 				}
@@ -394,6 +411,10 @@ namespace std {
 					if (node->children[i] == NULL) numNull++;
 				}
 				if (numNull == 4) node->isLeaf = true;
+			}
+			else {
+				node->isLeaf = true;
+				for (int i = 0; i < 4; ++i) node->children[i] = NULL;
 			}
 		}
 
@@ -505,8 +526,22 @@ private:
 	VkDeviceMemory indexBufferMemory;
 	VkBuffer indexLowPolyBuffer;
 	VkDeviceMemory indexLowPolyBufferMemory;
+
+	std::vector<Vertex> vertices_ground;
+	std::vector<uint32_t> indices_ground;
+	VkBuffer vertexBuffer_ground;
+	VkDeviceMemory vertexBufferMemory_ground;
+	VkBuffer indexBuffer_ground;
+	VkDeviceMemory indexBufferMemory_ground;
+
+	std::vector<Vertex> vertices_avatar;
+	std::vector<uint32_t> indices_avatar;
+	VkBuffer vertexBuffer_avatar;
+	VkDeviceMemory vertexBufferMemory_avatar;
+	VkBuffer indexBuffer_avatar;
+	VkDeviceMemory indexBufferMemory_avatar;
 	
-	std::unordered_map<std::string, std::pair<size_t,size_t>> objectHash;
+	std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> objectHash;
 	std::unordered_map<std::string, int> objectHash_lowpoly;
 	std::unordered_map<std::string, AABB > objectAABB;
 	std::unordered_set<std::string > objectsToRenderForFrame;
@@ -544,13 +579,29 @@ private:
 	VkPipeline GBufferPipeline;
 	VkPipelineLayout GBufferPipelineLayout;
 	std::vector<VkDescriptorSet> descriptorSetGBuffer;
+	VkDescriptorPool GBufferDescriptorPool;
 
 	std::vector<VkFence> GBufferFence;
 	VkSemaphore renderStartSemaphoreGBuffer = 0;
 	VkSemaphore renderCompleteSemaphoreGBuffer = 0;
+	VkSemaphore gBufferCompleteSemaphore;
 
 	QuadTree worldQuadTree;
-	thread_pool_frustrum_culling * FrustCullThreadPool;
+	Thread_pool_frustrum_culling * FrustCullThreadPool;
+
+	//***************************** LIGHT DEPTH MAP VARIABLES ****************************
+
+	VkFramebuffer LightDepthFramebuffer;
+	GbufferImageViews LightDepthImageViews;
+	VkDescriptorSetLayout descriptorSetLayoutLightDepth;
+	VkRenderPass renderPassLightDepth;
+	VkCommandBuffer LightDepthCommandBuffer;
+	VkPipeline LightDepthPipeline;
+	VkPipelineLayout LightDepthPipelineLayout;
+	VkDescriptorSet descriptorSetLightDepth;
+	VkDescriptorPool LightDepthDescriptorPool;
+	VkFence LightDepthFence;
+	VkSemaphore LightDepthCompleteSemaphore;
 
 	//**********************    FUNCTIONS *************************************
 	void createInstance(std::string appName);
@@ -582,6 +633,7 @@ private:
 	VkFormat findSupportedFormat(const std::vector<VkFormat>&, VkImageTiling, VkFormatFeatureFlags);
 
 	void createDescriptorSetLayout();
+	void createDescriptorSetLayoutDebug();
 	void createGraphicsPipeline();
 	VkShaderModule createShaderModule(const std::vector<char>&);
 	void createCommandPool();
@@ -593,10 +645,13 @@ private:
 	void createBuffer(VkDeviceSize, VkBufferUsageFlags,
 		VkMemoryPropertyFlags, VkBuffer&, VkDeviceMemory&);
 	void createIndexBuffer();
+	void createGeometryBuffer(std::vector<Vertex>&, VkBuffer&, VkDeviceMemory&);
+	void createIndexBuffer(std::vector<uint32_t>&, VkBuffer&, VkDeviceMemory&);
 	void createIndexLowPolyBuffer();
 	void createUniformBuffers();
 	void createDescriptorPool();
 	void createDescriptorSets();
+	void createDescriptorSetsDebug();
 	
 	void createImguiContext();
 	void render_gui();
@@ -624,9 +679,11 @@ private:
 	void createDescriptorSetGBuffer();
 	void setupGBufferCommandBuffer();
 	void GBufferDraw(uint32_t& imageIndex);
-	void pruneGeo(const UniformBufferObject& _ubo, const QuadTreeNode* const _node,
-		std::unordered_set<std::string >& objectsToRenderForFrame, const std::unordered_map<std::string, AABB >& objectAABB);
+	void pruneGeo(const glm::mat4 proj, const glm::mat4 view, std::shared_ptr< const QuadTreeNode* const> _node);
 
+	void LightDepthDraw();
+	void LightDepthRenderPipelineSetup();
+	
 	void initVulkan(std::string appName ) {
 
 		createInstance(appName);
@@ -635,14 +692,18 @@ private:
 
 		createSurface();
 		pickPhysicalDevice();
-		
 		createLogicalDevice();
+
 		createSwapChain();
 		createImageViews();
+
 		createRenderPass();
-		createDescriptorSetLayout();
+		createDescriptorSetLayout(); 
+		//createDescriptorSetLayoutDebug();
 		createGraphicsPipeline();
 		createCommandPool();
+		createDescriptorPool();
+
 		createDepthResources();
 		createFramebuffers();
 		//createTextureImage();
@@ -650,15 +711,20 @@ private:
 		createTextureSampler();
 
 		GbufferRenderPipelineSetup();
-
+		
 		loadModel();
 		createVertexBuffer();
 		createIndexBuffer();
+		createGeometryBuffer(vertices_ground, vertexBuffer_ground, vertexBufferMemory_ground);
+		createIndexBuffer(indices_ground, indexBuffer_ground, indexBufferMemory_ground);
+		createGeometryBuffer(vertices_avatar, vertexBuffer_avatar, vertexBufferMemory_avatar);
+		createIndexBuffer(indices_avatar, indexBuffer_avatar, indexBufferMemory_avatar);
 		//createVertexLowPolyBuffer();
 		//createIndexLowPolyBuffer();
 		createUniformBuffers();
-		createDescriptorPool();
+		
 		createDescriptorSets();
+		//createDescriptorSetsDebug();
 		createImguiContext();
 		createCommandBuffers();
 		createSyncObjects();
@@ -755,6 +821,7 @@ namespace std {
 #include "VulkanGeometry.hpp"
 #include "VulkanTexture.hpp"
 #include "VulkanGBuffer.hpp"
+#include "VulkanLightDepth.hpp"
 #include "VulkanImgui.hpp"
 
 #endif

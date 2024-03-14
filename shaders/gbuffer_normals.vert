@@ -17,7 +17,7 @@ layout (location = 1 ) out vec3 Normal;
 layout (location = 2 ) out vec4 Position; // adding position, so we know where we are
 layout (location = 3 ) out vec3 LightPos;
 layout (location = 4 ) out vec3 NormalView;
-
+ 
 void main() {
 
 	// Apply the reflect view matrix to the vertex position

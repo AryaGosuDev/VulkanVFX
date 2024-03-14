@@ -19,27 +19,60 @@ namespace VkApplication {
         fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutBinding fragmentGbuffer1{};
-        fragmentLayoutBinding.binding = 2;
-        fragmentLayoutBinding.descriptorCount = 1;
-        fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        fragmentLayoutBinding.pImmutableSamplers = nullptr;
-        fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragmentGbuffer1.binding = 2;
+        fragmentGbuffer1.descriptorCount = 1;
+        fragmentGbuffer1.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentGbuffer1.pImmutableSamplers = nullptr;
+        fragmentGbuffer1.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutBinding fragmentGbuffer2{};
-        fragmentLayoutBinding.binding = 3;
-        fragmentLayoutBinding.descriptorCount = 1;
-        fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        fragmentLayoutBinding.pImmutableSamplers = nullptr;
-        fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        fragmentGbuffer2.binding = 3;
+        fragmentGbuffer2.descriptorCount = 1;
+        fragmentGbuffer2.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentGbuffer2.pImmutableSamplers = nullptr;
+        fragmentGbuffer2.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutBinding fragmentGbuffer3{};
-        fragmentLayoutBinding.binding = 4;
+        fragmentGbuffer3.binding = 4;
+        fragmentGbuffer3.descriptorCount = 1;
+        fragmentGbuffer3.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentGbuffer3.pImmutableSamplers = nullptr;
+        fragmentGbuffer3.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutBinding fragmentGbuffer4{};
+        fragmentGbuffer4.binding = 5;
+        fragmentGbuffer4.descriptorCount = 1;
+        fragmentGbuffer4.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentGbuffer4.pImmutableSamplers = nullptr;
+        fragmentGbuffer4.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 6> bindings = { uboLayoutBinding, fragmentLayoutBinding,fragmentGbuffer1,fragmentGbuffer2,fragmentGbuffer3 ,fragmentGbuffer4 };
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+    }
+
+    void MainVulkApplication::createDescriptorSetLayoutDebug() {
+        VkDescriptorSetLayoutBinding uboLayoutBinding{};
+        uboLayoutBinding.binding = 0;
+        uboLayoutBinding.descriptorCount = 1;
+        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        uboLayoutBinding.pImmutableSamplers = nullptr;
+        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        VkDescriptorSetLayoutBinding fragmentLayoutBinding{};
+        fragmentLayoutBinding.binding = 1;
         fragmentLayoutBinding.descriptorCount = 1;
-        fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         fragmentLayoutBinding.pImmutableSamplers = nullptr;
         fragmentLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 5> bindings = { uboLayoutBinding, fragmentLayoutBinding,fragmentGbuffer1,fragmentGbuffer2,fragmentGbuffer3 };
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, fragmentLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -122,7 +155,7 @@ namespace VkApplication {
             imageInfoWC.imageView = gbufferImageViews[i].WorldCoordImageView;
             imageInfoWC.sampler = textureSampler;
 
-            std::array<VkWriteDescriptorSet, 5> descriptorWrites{};
+            std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -154,7 +187,7 @@ namespace VkApplication {
             descriptorWrites[3].dstArrayElement = 0;
             descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[3].descriptorCount = 1;
-            descriptorWrites[3].pImageInfo = &imageInfoNormal;
+            descriptorWrites[3].pImageInfo = &imageInfoDepth;
 
             descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[4].dstSet = descriptorSets[i];
@@ -162,15 +195,60 @@ namespace VkApplication {
             descriptorWrites[4].dstArrayElement = 0;
             descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[4].descriptorCount = 1;
-            descriptorWrites[4].pImageInfo = &imageInfoDepth;
+            descriptorWrites[4].pImageInfo = &imageInfoNormal;
 
-            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[4].dstSet = descriptorSets[i];
-            descriptorWrites[4].dstBinding = 5;
-            descriptorWrites[4].dstArrayElement = 0;
-            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[4].descriptorCount = 1;
-            descriptorWrites[4].pImageInfo = &imageInfoWC;
+            descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[5].dstSet = descriptorSets[i];
+            descriptorWrites[5].dstBinding = 5;
+            descriptorWrites[5].dstArrayElement = 0;
+            descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[5].descriptorCount = 1;
+            descriptorWrites[5].pImageInfo = &imageInfoWC;
+
+            vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        }
+    }
+
+    void MainVulkApplication::createDescriptorSetsDebug() {
+        std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+        allocInfo.pSetLayouts = layouts.data();
+
+        descriptorSets.resize(swapChainImages.size());
+        if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS)
+            throw std::runtime_error("failed to allocate descriptor sets!");
+
+        for (size_t i = 0; i < swapChainImages.size(); i++) {
+            VkDescriptorBufferInfo bufferInfo{};
+            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.offset = 0;
+            bufferInfo.range = sizeof(UniformBufferObject);
+
+            VkDescriptorBufferInfo bufferFragInfo = {};
+            bufferFragInfo.buffer = uniformFragBuffers[i];
+            bufferFragInfo.offset = 0;
+            bufferFragInfo.range = sizeof(UniformFragmentObject);
+
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = descriptorSets[i];
+            descriptorWrites[0].dstBinding = 0;
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = descriptorSets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pBufferInfo = &bufferFragInfo;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }

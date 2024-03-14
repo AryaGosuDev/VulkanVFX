@@ -131,6 +131,8 @@
     <CustomBuildStep>
       <Command>glslangValidator -V shaders/shader_base.vert -o shaders/shader_base_vert.spv
 glslangValidator -V shaders/shader_base.frag -o shaders/shader_base_frag.spv
+glslangValidator -V shaders/shader_base_debug.vert -o shaders/shader_base_debug_vert.spv
+glslangValidator -V shaders/shader_base_debug.frag -o shaders/shader_base_debug_frag.spv
 glslangValidator -V shaders/gbuffer_albedo.vert -o shaders/gbuffer_albedo_vert.spv
 glslangValidator -V shaders/gbuffer_albedo.frag -o shaders/gbuffer_albedo_frag.spv
 glslangValidator -V shaders/gbuffer_depthInfo.vert -o shaders/gbuffer_depthInfo_vert.spv
@@ -139,14 +141,15 @@ glslangValidator -V shaders/gbuffer_normals.vert -o shaders/gbuffer_normals_vert
 glslangValidator -V shaders/gbuffer_normals.frag -o shaders/gbuffer_normals_frag.spv
 glslangValidator -V shaders/gbuffer_worldCoord.vert -o shaders/gbuffer_worldCoord_vert.spv
 glslangValidator -V shaders/gbuffer_worldCoord.frag -o shaders/gbuffer_worldCoord_frag.spv
+del "$(ProjectDir)ValidationDebug.txt"
 
 </Command>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>shaders/shader_base_vert.spv;shaders/shader_base_frag.spv;shaders/gbuffer_albedo_vert.spv;shaders/gbuffer_albedo_frag.spv;shaders/gbuffer_depthInfo_vert.spv;shaders/gbuffer_depthInfo_frag.spv;shaders/gbuffer_normals_vert.spv;shaders/gbuffer_normals_frag.spv;shaders/gbuffer_worldCoord_vert.spv;shaders/gbuffer_worldCoord_frag.spv;%(Outputs)</Outputs>
+      <Outputs>shaders/shader_base_vert.spv;shaders/shader_base_frag.spv;shaders/shader_base_debug_vert.spv;shaders/shader_base_debug_frag.spv;shaders/gbuffer_albedo_vert.spv;shaders/gbuffer_albedo_frag.spv;shaders/gbuffer_depthInfo_vert.spv;shaders/gbuffer_depthInfo_frag.spv;shaders/gbuffer_normals_vert.spv;shaders/gbuffer_normals_frag.spv;shaders/gbuffer_worldCoord_vert.spv;shaders/gbuffer_worldCoord_frag.spv;%(Outputs)</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>shaders/shader_base.vert;shaders/shader_base.frag;shaders/gbuffer_albedo.vert;shaders/gbuffer_albedo.frag;shaders/gbuffer_depthInfo.vert;shaders/gbuffer_depthInfo.frag;shaders/gbuffer_normals.vert;shaders/gbuffer_normals.frag;shaders/gbuffer_worldCoord.vert;shaders/gbuffer_worldCoord.frag;%(Inputs)</Inputs>
+      <Inputs>shaders/shader_base.vert;shaders/shader_base.frag;shaders/shader_base_debug.vert;shaders/shader_base_debug.frag;shaders/gbuffer_albedo.vert;shaders/gbuffer_albedo.frag;shaders/gbuffer_depthInfo.vert;shaders/gbuffer_depthInfo.frag;shaders/gbuffer_normals.vert;shaders/gbuffer_normals.frag;shaders/gbuffer_worldCoord.vert;shaders/gbuffer_worldCoord.frag;%(Inputs)</Inputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -185,6 +188,7 @@ glslangValidator -V shaders/gbuffer_worldCoord.frag -o shaders/gbuffer_worldCoor
     <ClInclude Include="VulkanGeometry.hpp" />
     <ClInclude Include="VulkanImgui.hpp" />
     <ClInclude Include="VulkanInstance.hpp" />
+    <ClInclude Include="VulkanLightDepth.hpp" />
     <ClInclude Include="VulkanRenderSettings.hpp" />
     <ClInclude Include="VulkanSwapchain.hpp" />
     <ClInclude Include="VulkanSync.hpp" />
@@ -203,6 +207,8 @@ glslangValidator -V shaders/gbuffer_worldCoord.frag -o shaders/gbuffer_worldCoor
     <None Include="shaders\gbuffer_worldCoord.vert" />
     <None Include="shaders\shader_base.frag" />
     <None Include="shaders\shader_base.vert" />
+    <None Include="shaders\shader_base_debug.frag" />
+    <None Include="shaders\shader_base_debug.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

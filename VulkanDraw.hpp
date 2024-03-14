@@ -26,12 +26,44 @@ namespace VkApplication {
 
         GBufferDraw(imageIndex);
 
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(commandBuffers[imageIndex], &beginInfo) != VK_SUCCESS)
+            throw std::runtime_error("failed to begin recording command buffer!");
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = swapChainExtent;
+
+        std::array<VkClearValue, 2> clearValues{};
+        //std::array<VkClearValue, 1> clearValues{};
+        clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+        clearValues[1].depthStencil = { 1.0f, 0 };
+
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassInfo.pClearValues = clearValues.data();
+
+        vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+        vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, NULL);
+        vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdDraw(commandBuffers[imageIndex], 6, 1, 0, 0); // draw quad
+        //vkCmdDraw(commandBuffers[imageIndex], 3, 1, 0, 0); // draw quad
+        vkCmdEndRenderPass(commandBuffers[imageIndex]);
+
+        if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) 
+            throw std::runtime_error("failed to record command buffer!");
+
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        submitInfo.waitSemaphoreCount = 1;
+        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame], gBufferCompleteSemaphore };
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT };
+        submitInfo.waitSemaphoreCount = 2;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
@@ -42,7 +74,7 @@ namespace VkApplication {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        vkResetFences(device, 1, &inFlightFences[currentFrame]);
+        check_vk_result(vkResetFences(device, 1, &inFlightFences[currentFrame]));
 
         if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
             throw std::runtime_error("failed to submit draw command buffer!");
@@ -54,11 +86,13 @@ namespace VkApplication {
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores;
 
+        std::vector<VkResult> presentResults(swapChainImages.size());
+
         VkSwapchainKHR swapChains[] = { swapChain };
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
-
         presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pResults = presentResults.data();
 
         result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
@@ -70,8 +104,8 @@ namespace VkApplication {
             throw std::runtime_error("failed to present swap chain image!");
         }
 
+        objectsToRenderForFrame.clear();
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-        //std::cout << currentFrame << std::endl;
     }
 
     void MainVulkApplication::updateUniformBuffer(uint32_t currentImage) {
@@ -143,7 +177,7 @@ namespace VkApplication {
 
         void* data;
         vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
+        memcpy(data, indices.data(), (uint32_t)bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
@@ -214,6 +248,54 @@ namespace VkApplication {
         vkBindBufferMemory(device, buffer, bufferMemory, 0);
     }
 
+    void MainVulkApplication::createGeometryBuffer(std::vector<Vertex>& geoData, VkBuffer& geoBuffer, VkDeviceMemory& geoBufferMemory) {
+
+        VkDeviceSize bufferSize = sizeof(geoData[0]) * geoData.size();
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, geoData.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, geoBuffer, geoBufferMemory);
+
+        copyBuffer(stagingBuffer, geoBuffer, bufferSize);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+
+    void MainVulkApplication::createIndexBuffer(std::vector<uint32_t>& geoData, VkBuffer& geoBuffer, VkDeviceMemory& geoBufferMemory) {
+
+        VkDeviceSize bufferSize = sizeof(geoData[0]) * geoData.size();
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer, stagingBufferMemory);
+
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, geoData.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, geoBuffer, geoBufferMemory);
+
+        copyBuffer(stagingBuffer, geoBuffer, bufferSize);
+
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+    }
+
     void MainVulkApplication::createUniformBuffers() {
         VkDeviceSize bufferSize = sizeof(UniformBufferObject);
         VkDeviceSize bufferFragSize = sizeof(UniformFragmentObject);
@@ -246,6 +328,39 @@ namespace VkApplication {
 
         if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
             throw std::runtime_error("failed to allocate command buffers!");
+        /*
+        for (size_t i = 0; i < commandBuffers.size(); ++i) {
+
+            VkCommandBufferBeginInfo beginInfo{};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+            if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS)
+                throw std::runtime_error("failed to begin recording command buffer!");
+
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = renderPass;
+            renderPassInfo.framebuffer = swapChainFramebuffers[i];
+            renderPassInfo.renderArea.offset = { 0, 0 };
+            renderPassInfo.renderArea.extent = swapChainExtent;
+
+            std::array<VkClearValue, 2> clearValues{};
+            //std::array<VkClearValue, 1> clearValues{};
+            clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+            clearValues[1].depthStencil = { 1.0f, 0 };
+
+            renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassInfo.pClearValues = clearValues.data();
+
+            vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+            vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+
+            vkCmdDraw(commandBuffers[i], 6, 1, 0, 0);
+
+            vkCmdEndRenderPass(commandBuffers[i]);
+        }
+        */
     }
 
     VkFormat MainVulkApplication::findSupportedFormat(const std::vector<VkFormat>& candidates, 
@@ -271,9 +386,12 @@ namespace VkApplication {
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+        poolInfo.flags =
+            VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-        if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) 
+        if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
             throw std::runtime_error("failed to create graphics command pool!");
+        }
     }
 
     VkCommandBuffer MainVulkApplication::beginSingleTimeCommands() {
@@ -309,6 +427,5 @@ namespace VkApplication {
         vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
     }
 }
-
 
 #endif

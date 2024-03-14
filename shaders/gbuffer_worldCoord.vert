@@ -15,7 +15,7 @@ layout (location = 2 ) in vec3 position;
 layout (location = 0 ) out vec3 Position; // adding position, so we know where we are
 
 void main() {
-
+ 
     vec4 worldPosition = ubo.model * vec4(position, 1.0);
     Position = worldPosition.xyz ;
     gl_Position = gl_Position = ubo.proj * ubo.view * worldPosition;

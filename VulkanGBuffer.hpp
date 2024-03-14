@@ -1,14 +1,29 @@
 #ifndef __VULKAN_GBUFFER_HPP__
 #define __VULKAN_GBUFFER_HPP__
 
-#define FB_COLOR_FORMAT VK_FORMAT_R32_UINT
-
 namespace VkApplication {
 
-	void MainVulkApplication::GBufferDraw(uint32_t& imageIndex) {
+	void renderObjectsIndexPass(std::unordered_set<std::string >& objectsToRenderForFrame, uint32_t& imageIndex, 
+		std::vector<VkCommandBuffer>& GbufferCommandBuffer, uint32_t indices_size, std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> & objectHash) {
 
-		pruneGeo(ubo, worldQuadTree.returnRoot(), objectsToRenderForFrame, objectAABB);
-		while (!FrustCullThreadPool->work_queue.empty()) {}
+		for (const auto& objectName : objectsToRenderForFrame) {
+
+			auto& offsets = objectHash[objectName];
+			uint32_t indexOffset = offsets.first;
+			uint32_t indexCount = offsets.second ; // Adjust based on your actual structure
+
+			vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], indexCount, 1, indexOffset, 0, 0);
+		}
+	}
+
+	void MainVulkApplication::GBufferDraw(uint32_t& imageIndex) {
+		FrustCullThreadPool->start = true;
+		auto childShared = std::make_shared< const QuadTreeNode* const>(worldQuadTree.returnRoot());
+		FrustCullThreadPool->submit([=]() { pruneGeo(ubo.proj, ubo.view, childShared); });
+		FrustCullThreadPool->waitUntilDone();
+		//std::cout << currentFrame << std::endl;
+
+		vkWaitForFences(device, 1, &GBufferFence[currentFrame], VK_TRUE, UINT64_MAX);
 
 		// Start recording commands
 		VkCommandBufferBeginInfo beginInfo = {};
@@ -34,17 +49,22 @@ namespace VkApplication {
 		renderPassInfo.pClearValues = clearValues.data();
 
 		vkCmdBeginRenderPass(GbufferCommandBuffer[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
 		// albedo
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.albedo);
-
 		VkBuffer vertexBuffers[] = { vertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
 		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
 
 		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
+		
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		VkBuffer vertexBuffersGround[] = { vertexBuffer_ground };
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
 
 		//normals
@@ -54,8 +74,11 @@ namespace VkApplication {
 		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
 
 		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
 
 		//depth info
@@ -65,10 +88,27 @@ namespace VkApplication {
 		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
 
 		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
+		
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
 
+		//world coords
+		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.worldCoord);
+
+		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
+
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		
 		// End the picking render pass
 		vkCmdEndRenderPass(GbufferCommandBuffer[imageIndex]);
 
@@ -78,38 +118,51 @@ namespace VkApplication {
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		submitInfo.waitSemaphoreCount = 0;
+		// If you need to wait on any semaphores before starting the G-buffer pass
+		VkSemaphore waitSemaphores{};
+		VkPipelineStageFlags waitStages{ };
+		submitInfo.waitSemaphoreCount = 0; // Update this count appropriately
+		submitInfo.pWaitSemaphores = &waitSemaphores;
+		submitInfo.pWaitDstStageMask = &waitStages;
+
+		VkSemaphore signalSemaphores[] = { gBufferCompleteSemaphore };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+
+		// Setting the command buffer for the G-buffer pass
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &GbufferCommandBuffer[imageIndex];
+
+		vkResetFences(device, 1, &GBufferFence[currentFrame]);
 
 		check_vk_result(vkQueueSubmit(graphicsQueue, 1, &submitInfo, GBufferFence[currentFrame]));
 	}
 
 	void MainVulkApplication::GbufferRenderPipelineSetup() {
 
-		FrustCullThreadPool = new thread_pool_frustrum_culling();
+		FrustCullThreadPool = new Thread_pool_frustrum_culling();
 		gbufferImageViews.resize(swapChainImages.size());
 
 		for (size_t i = 0; i < swapChainImages.size(); ++i) {
-			createImage(swapChainExtent.width, swapChainExtent.height, FB_COLOR_FORMAT, VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+			createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				gbufferImageViews[i].AlbedoImage, gbufferImageViews[i].AlbedoImageMemory);
-			gbufferImageViews[i].AlbedoImageView = createImageView(gbufferImageViews[i].AlbedoImage, FB_COLOR_FORMAT, VK_IMAGE_ASPECT_COLOR_BIT);
+			gbufferImageViews[i].AlbedoImageView = createImageView(gbufferImageViews[i].AlbedoImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT);
 
-			createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_D32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+			createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				gbufferImageViews[i].DepthInfoImage, gbufferImageViews[i].DepthInfoImageMemory);
-			gbufferImageViews[i].DepthInfoImageView = createImageView(gbufferImageViews[i].DepthInfoImage, VK_FORMAT_D32_SFLOAT, VK_IMAGE_ASPECT_DEPTH_BIT);
+			gbufferImageViews[i].DepthInfoImageView = createImageView(gbufferImageViews[i].DepthInfoImage, VK_FORMAT_R32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-			createImage(swapChainExtent.width, swapChainExtent.height, FB_COLOR_FORMAT, VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+			createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				gbufferImageViews[i].NormalsImage, gbufferImageViews[i].NormalsImageMemory);
-			gbufferImageViews[i].NormalsImageView = createImageView(gbufferImageViews[i].NormalsImage, FB_COLOR_FORMAT, VK_IMAGE_ASPECT_COLOR_BIT);
+			gbufferImageViews[i].NormalsImageView = createImageView(gbufferImageViews[i].NormalsImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-			createImage(swapChainExtent.width, swapChainExtent.height, FB_COLOR_FORMAT, VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 
+			createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				gbufferImageViews[i].WorldCoordImage, gbufferImageViews[i].WorldCoordImageMemory);
-			gbufferImageViews[i].WorldCoordImageView = createImageView(gbufferImageViews[i].WorldCoordImage, FB_COLOR_FORMAT, VK_IMAGE_ASPECT_COLOR_BIT);
+			gbufferImageViews[i].WorldCoordImageView = createImageView(gbufferImageViews[i].WorldCoordImage, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
 		}
 
@@ -173,7 +226,7 @@ namespace VkApplication {
 
 		//creating subpass dependencies and attachments
 		VkAttachmentDescription albedoAttachment{};
-		albedoAttachment.format = FB_COLOR_FORMAT;
+		albedoAttachment.format = VK_FORMAT_R8G8B8A8_UNORM;
 		albedoAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		albedoAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		albedoAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -181,7 +234,7 @@ namespace VkApplication {
 		albedoAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		VkAttachmentDescription normalAttachment{};
-		normalAttachment.format = FB_COLOR_FORMAT;
+		normalAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 		normalAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		normalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		normalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -189,7 +242,7 @@ namespace VkApplication {
 		normalAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		VkAttachmentDescription depthInfoAttachment{};
-		depthInfoAttachment.format = VK_FORMAT_D32_SFLOAT;
+		depthInfoAttachment.format = VK_FORMAT_R32_SFLOAT;
 		depthInfoAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		depthInfoAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthInfoAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -197,7 +250,7 @@ namespace VkApplication {
 		depthInfoAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 		VkAttachmentDescription worldCoordAttachment{};
-		worldCoordAttachment.format = FB_COLOR_FORMAT;
+		worldCoordAttachment.format = VK_FORMAT_R16G16B16A16_SFLOAT;
 		worldCoordAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 		worldCoordAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		worldCoordAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -404,7 +457,8 @@ namespace VkApplication {
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencil.depthTestEnable = VK_TRUE;
 		depthStencil.depthWriteEnable = VK_TRUE;
-		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+		//depthStencil.depthWriteEnable = VK_FALSE;
+		depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -422,7 +476,7 @@ namespace VkApplication {
 		colorBlending.blendConstants[3] = 0.0f;
 			
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = shaderStages.size();;
+		pipelineInfo.stageCount = shaderStages.size();
 		pipelineInfo.pStages = shaderStages.data();
 		pipelineInfo.pVertexInputState = &vertexInputInfo;
 		pipelineInfo.pInputAssemblyState = &inputAssembly;
@@ -456,6 +510,8 @@ namespace VkApplication {
 
 		shaderStages[0] = vertShaderStageInfo;
 		shaderStages[1] = fragShaderStageInfo;
+		pipelineInfo.stageCount = shaderStages.size();
+		pipelineInfo.pStages = shaderStages.data();
 		pipelineInfo.subpass = 1;
 			
 		check_vk_result(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GBufferPipelines.normals));
@@ -479,6 +535,8 @@ namespace VkApplication {
 
 		shaderStages[0] = vertShaderStageInfo;
 		shaderStages[1] = fragShaderStageInfo;
+		pipelineInfo.stageCount = shaderStages.size();
+		pipelineInfo.pStages = shaderStages.data();
 		pipelineInfo.subpass = 2;
 
 		check_vk_result(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GBufferPipelines.depthInfo));
@@ -502,6 +560,8 @@ namespace VkApplication {
 
 		shaderStages[0] = vertShaderStageInfo;
 		shaderStages[1] = fragShaderStageInfo;
+		pipelineInfo.stageCount = shaderStages.size();
+		pipelineInfo.pStages = shaderStages.data();
 		pipelineInfo.subpass = 3;
 
 		check_vk_result(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &GBufferPipelines.worldCoord));
@@ -536,13 +596,35 @@ namespace VkApplication {
 
 			check_vk_result(vkCreateFence(device, &fenceInfo, nullptr, &GBufferFence[i]));
 		}
+		VkSemaphoreCreateInfo semaphoreInfo = {};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		check_vk_result(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &gBufferCompleteSemaphore));
 	}
 
 	void MainVulkApplication::createDescriptorSetGBuffer() {
+
+		uint32_t swapChainImageCount = static_cast<uint32_t>(swapChainImages.size());
+
+		// Each descriptor set will have 2 uniform buffer descriptors
+		VkDescriptorPoolSize poolSizes[] = {
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2 * swapChainImageCount }
+		};
+
+		VkDescriptorPoolCreateInfo poolCreateInfo = {};
+		poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolCreateInfo.poolSizeCount = sizeof(poolSizes) / sizeof(poolSizes[0]);
+		poolCreateInfo.pPoolSizes = poolSizes;
+		// Specify the maximum number of descriptor sets that can be allocated from the pool
+		poolCreateInfo.maxSets = swapChainImageCount;
+		
+		if (vkCreateDescriptorPool(device, &poolCreateInfo, nullptr, &GBufferDescriptorPool) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create G-buffer descriptor pool!");
+		}
+
 		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayoutGBuffer);
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = descriptorPool;
+		allocInfo.descriptorPool = GBufferDescriptorPool;
 		allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());;
 		allocInfo.pSetLayouts = layouts.data();
 
@@ -597,75 +679,6 @@ namespace VkApplication {
 		allocInfo.commandBufferCount = GbufferCommandBuffer.size();
 
 		vkAllocateCommandBuffers(device, &allocInfo, GbufferCommandBuffer.data());
-		/*
-		for (size_t i = 0; i < GbufferCommandBuffer.size(); ++i) {
-
-			// Start recording commands
-			VkCommandBufferBeginInfo beginInfo = {};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-			check_vk_result(vkBeginCommandBuffer(GbufferCommandBuffer[i], &beginInfo));
-
-			// Begin the picking render pass
-			VkRenderPassBeginInfo renderPassInfo = {};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassInfo.renderPass = renderPassGBuffer;
-			renderPassInfo.framebuffer = GBufferFramebuffer[i];
-			renderPassInfo.renderArea.offset = { 0, 0 };
-			renderPassInfo.renderArea.extent = { swapChainExtent.width, swapChainExtent.height };  // Set this to the size of your picking framebuffer
-
-			std::array<VkClearValue, 5> clearValues{};
-			clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-			clearValues[1].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-			clearValues[2].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-			clearValues[3].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-			clearValues[4].depthStencil = { 1.0f, 0 };
-			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			renderPassInfo.pClearValues = clearValues.data();
-
-			vkCmdBeginRenderPass(GbufferCommandBuffer[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-			// albedo
-			vkCmdBindPipeline(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.albedo);
-
-			VkBuffer vertexBuffers[] = { vertexBuffer };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindDescriptorSets(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[i], 0, nullptr);
-			vkCmdBindVertexBuffers(GbufferCommandBuffer[i], 0, 1, vertexBuffers, offsets);
-			
-			vkCmdBindIndexBuffer(GbufferCommandBuffer[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(GbufferCommandBuffer[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
-			vkCmdNextSubpass(GbufferCommandBuffer[i], VK_SUBPASS_CONTENTS_INLINE);
-
-			//normals
-			vkCmdBindPipeline(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.normals);
-
-			vkCmdBindDescriptorSets(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[i], 0, nullptr);
-			vkCmdBindVertexBuffers(GbufferCommandBuffer[i], 0, 1, vertexBuffers, offsets);
-
-			vkCmdBindIndexBuffer(GbufferCommandBuffer[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(GbufferCommandBuffer[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
-			vkCmdNextSubpass(GbufferCommandBuffer[i], VK_SUBPASS_CONTENTS_INLINE);
-
-			//depth info
-			vkCmdBindPipeline(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.depthInfo);
-
-			vkCmdBindDescriptorSets(GbufferCommandBuffer[i], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[i], 0, nullptr);
-			vkCmdBindVertexBuffers(GbufferCommandBuffer[i], 0, 1, vertexBuffers, offsets);
-
-			vkCmdBindIndexBuffer(GbufferCommandBuffer[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(GbufferCommandBuffer[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-
-			vkCmdNextSubpass(GbufferCommandBuffer[i], VK_SUBPASS_CONTENTS_INLINE);
-
-			// End the picking render pass
-			vkCmdEndRenderPass(GbufferCommandBuffer[i]);
-
-			// Finish recording the command buffer
-			vkEndCommandBuffer(GbufferCommandBuffer[i]);
-		}
-		*/
 	}
 }
 #endif
