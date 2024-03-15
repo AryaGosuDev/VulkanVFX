@@ -25,6 +25,7 @@ namespace VkApplication {
         updateUniformBuffer(imageIndex);
 
         GBufferDraw(imageIndex);
+        LightDepthDraw();
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -61,9 +62,9 @@ namespace VkApplication {
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame], gBufferCompleteSemaphore };
+        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame], gBufferCompleteSemaphore , LightDepthCompleteSemaphore };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT };
-        submitInfo.waitSemaphoreCount = 2;
+        submitInfo.waitSemaphoreCount = 3;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 

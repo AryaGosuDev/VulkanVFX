@@ -46,7 +46,14 @@ namespace VkApplication {
         fragmentGbuffer4.pImmutableSamplers = nullptr;
         fragmentGbuffer4.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 6> bindings = { uboLayoutBinding, fragmentLayoutBinding,fragmentGbuffer1,fragmentGbuffer2,fragmentGbuffer3 ,fragmentGbuffer4 };
+        VkDescriptorSetLayoutBinding fragmentGbuffer5{};
+        fragmentGbuffer4.binding = 6;
+        fragmentGbuffer4.descriptorCount = 1;
+        fragmentGbuffer4.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        fragmentGbuffer4.pImmutableSamplers = nullptr;
+        fragmentGbuffer4.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        std::array<VkDescriptorSetLayoutBinding, 7> bindings = { uboLayoutBinding, fragmentLayoutBinding,fragmentGbuffer1,fragmentGbuffer2,fragmentGbuffer3 ,fragmentGbuffer4, fragmentGbuffer5 };
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -155,7 +162,12 @@ namespace VkApplication {
             imageInfoWC.imageView = gbufferImageViews[i].WorldCoordImageView;
             imageInfoWC.sampler = textureSampler;
 
-            std::array<VkWriteDescriptorSet, 6> descriptorWrites{};
+            VkDescriptorImageInfo imageInfoLightDepth{}; //world coords
+            imageInfoLightDepth.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfoLightDepth.imageView = textureImageView_lightDepth;
+            imageInfoLightDepth.sampler = textureSampler;
+
+            std::array<VkWriteDescriptorSet, 7> descriptorWrites{};
 
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = descriptorSets[i];
@@ -204,6 +216,14 @@ namespace VkApplication {
             descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[5].descriptorCount = 1;
             descriptorWrites[5].pImageInfo = &imageInfoWC;
+
+            descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[6].dstSet = descriptorSets[i];
+            descriptorWrites[6].dstBinding = 6;
+            descriptorWrites[6].dstArrayElement = 0;
+            descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[6].descriptorCount = 1;
+            descriptorWrites[6].pImageInfo = &imageInfoLightDepth;
 
             vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         }

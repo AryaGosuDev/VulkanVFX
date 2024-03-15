@@ -395,7 +395,7 @@ namespace VkApplication {
 		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, AVATAR_PATH.c_str(), 0, true))
 			throw std::runtime_error(warn + err);
 
-		//GROUND
+		//AVATAR
 		for (const auto& shape : shapes) {
 
 			for (int i = 0; i < shape.mesh.indices.size(); i += 3) {

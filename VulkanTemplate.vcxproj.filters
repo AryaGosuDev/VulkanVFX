@@ -103,5 +103,7 @@
     <None Include="shaders\shader_base.vert" />
     <None Include="shaders\shader_base_debug.frag" />
     <None Include="shaders\shader_base_debug.vert" />
+    <None Include="shaders\LightdepthInfo.frag" />
+    <None Include="shaders\LightdepthInfo.vert" />
   </ItemGroup>
 </Project>

@@ -251,6 +251,7 @@ namespace std {
 		glm::mat4 normalMatrix;
 		glm::vec4 lightPos;
 		glm::mat4 orthoProj;
+		glm::mat4 LightDepthView;
 	};
 
 	struct UniformFragmentObject {
@@ -476,6 +477,8 @@ private:
 
 	size_t WIDTH = 1600;
 	size_t HEIGHT = 1200;
+	size_t WIDTH_SHADOWMAP = 4096;
+	size_t HEIGHT_SHADOWMAP = 4096;
 	
 	GLFWwindow* window;
 	ImGui_ImplVulkanH_Window imgui_window;
@@ -592,7 +595,7 @@ private:
 	//***************************** LIGHT DEPTH MAP VARIABLES ****************************
 
 	VkFramebuffer LightDepthFramebuffer;
-	GbufferImageViews LightDepthImageViews;
+	VkImageView LightDepthImageViews;
 	VkDescriptorSetLayout descriptorSetLayoutLightDepth;
 	VkRenderPass renderPassLightDepth;
 	VkCommandBuffer LightDepthCommandBuffer;
@@ -602,6 +605,12 @@ private:
 	VkDescriptorPool LightDepthDescriptorPool;
 	VkFence LightDepthFence;
 	VkSemaphore LightDepthCompleteSemaphore;
+
+	VkImage textureImage_lightDepth;
+	VkImageView textureImageView_lightDepth;
+
+	VkDeviceMemory textureImageMemory_lightDepth;
+	VkSampler textureSampler_lightDepth;
 
 	//**********************    FUNCTIONS *************************************
 	void createInstance(std::string appName);

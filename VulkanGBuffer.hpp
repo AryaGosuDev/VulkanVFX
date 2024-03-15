@@ -16,6 +16,26 @@ namespace VkApplication {
 		}
 	}
 
+	void renderDrawGround( uint32_t& imageIndex, std::vector<VkCommandBuffer>& GbufferCommandBuffer, 
+		uint32_t indices_size, VkBuffer & mainVertexBuffer, VkBuffer & mainIndexBuffer  ) {
+
+		VkBuffer vertexBuffers[] = { mainVertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], mainVertexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], indices_size, 1, 0, 0, 0);
+	}
+
+	void renderDrawAvatar( uint32_t& imageIndex, std::vector<VkCommandBuffer>& GbufferCommandBuffer,
+		uint32_t indices_size, VkBuffer& mainVertexBuffer, VkBuffer& mainIndexBuffer) {
+
+		VkBuffer vertexBuffers[] = { mainVertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], mainVertexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], indices_size, 1, 0, 0, 0);
+	}
+
 	void MainVulkApplication::GBufferDraw(uint32_t& imageIndex) {
 		FrustCullThreadPool->start = true;
 		auto childShared = std::make_shared< const QuadTreeNode* const>(worldQuadTree.returnRoot());
@@ -60,10 +80,8 @@ namespace VkApplication {
 		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
-		VkBuffer vertexBuffersGround[] = { vertexBuffer_ground };
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
 
@@ -75,9 +93,8 @@ namespace VkApplication {
 
 		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
 
@@ -90,9 +107,8 @@ namespace VkApplication {
 		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
 
@@ -105,9 +121,8 @@ namespace VkApplication {
 		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffersGround, offsets);
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer_ground, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], static_cast<uint32_t>(indices_ground.size()), 1, 0, 0, 0);
+		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		// End the picking render pass
 		vkCmdEndRenderPass(GbufferCommandBuffer[imageIndex]);

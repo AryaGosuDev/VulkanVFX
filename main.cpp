@@ -85,6 +85,9 @@ namespace VkApplication {
 		_app->ufo.QuadraticAttenuation = QuadraticAttenuation;
 		_app->ufo.viewMatrix = glm::inverseTranspose(viewMatrix3x3);;
 		_app->ufo.eyeViewMatrix = glm::inverseTranspose(viewMatrix3x3);
+
+		_app->ubo.orthoProj =	   glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 1.0f, 100.0f);
+		_app->ubo.LightDepthView = glm::lookAt(glm::vec3(LightPosition), centerLoc, up);
 	}
 
 	void updateUniformBuffer(VkApplication::MainVulkApplication* _app) {
@@ -101,6 +104,8 @@ namespace VkApplication {
 			motionMoving = false;
 			_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
 		}
+
+		_app->ubo.LightDepthView = glm::lookAt(glm::vec3(LightPosition), centerLoc, up);
 
 		if (changeLightPos[0] == 1) {
 			_app->ubo.lightPos.x += lightPositionx;
