@@ -12,9 +12,12 @@ layout(set = 0, binding = 1) uniform UniformFragBufferObject {
 	mat4 viewMatrix ;
 	mat4 eyeViewMatrix;
 } ufbo;
+
+layout (location = 0) in  float inFragDepth ;
  
 layout (location = 0) out float fragDepth;
 
 void main() {
-	fragDepth = gl_FragCoord.z;
+	fragDepth = inFragDepth;
+	//fragDepth = gl_FragCoord.z;
 }

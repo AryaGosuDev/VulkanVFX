@@ -20,5 +20,5 @@ void main() {
  
     vec4 worldPosition = ubo.model * vec4(position, 1.0);
     Position = worldPosition.xyz ;
-    gl_Position = gl_Position = ubo.proj * ubo.view * worldPosition;
+    gl_Position = ubo.proj * ubo.view * worldPosition;
 }

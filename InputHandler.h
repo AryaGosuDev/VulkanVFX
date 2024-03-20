@@ -18,7 +18,7 @@ bool lbutton_down = false;
 
 bool firstMouse = true;
 double lastX = 0.0, lastY = 0.0;
-float sensitivity = 0.1f;
+float sensitivity = 0.01f;
 
 double pointx;
 double pointy;

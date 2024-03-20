@@ -4,7 +4,13 @@
 namespace VkApplication {
 
 	void renderObjectsIndexPass(std::unordered_set<std::string >& objectsToRenderForFrame, uint32_t& imageIndex, 
-		std::vector<VkCommandBuffer>& GbufferCommandBuffer, uint32_t indices_size, std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> & objectHash) {
+		std::vector<VkCommandBuffer>& GbufferCommandBuffer, uint32_t indices_size, std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> & objectHash,
+		VkBuffer& mainVertexBuffer, VkBuffer& mainIndexBuffer) {
+
+		VkBuffer vertexBuffers[] = { mainVertexBuffer };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], mainIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 		for (const auto& objectName : objectsToRenderForFrame) {
 
@@ -22,7 +28,7 @@ namespace VkApplication {
 		VkBuffer vertexBuffers[] = { mainVertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], mainVertexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], mainIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], indices_size, 1, 0, 0, 0);
 	}
 
@@ -32,7 +38,7 @@ namespace VkApplication {
 		VkBuffer vertexBuffers[] = { mainVertexBuffer };
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], mainVertexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], mainIndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(GbufferCommandBuffer[imageIndex], indices_size, 1, 0, 0, 0);
 	}
 
@@ -72,14 +78,9 @@ namespace VkApplication {
 
 		// albedo
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.albedo);
-		VkBuffer vertexBuffers[] = { vertexBuffer };
-		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		
-		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
@@ -87,12 +88,9 @@ namespace VkApplication {
 
 		//normals
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.normals);
-
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
@@ -100,13 +98,9 @@ namespace VkApplication {
 
 		//depth info
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.depthInfo);
-
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		
-		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
@@ -114,13 +108,9 @@ namespace VkApplication {
 
 		//world coords
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.worldCoord);
-
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		vkCmdBindVertexBuffers(GbufferCommandBuffer[imageIndex], 0, 1, vertexBuffers, offsets);
-
-		vkCmdBindIndexBuffer(GbufferCommandBuffer[imageIndex], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		
-		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash);
+		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
