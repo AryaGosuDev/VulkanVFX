@@ -129,8 +129,8 @@
       <AdditionalDependencies>glfw3.lib;vulkan-1.lib;assimp-vc142-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CustomBuildStep>
-      <Command>glslangValidator -V shaders/shader_base.vert -o shaders/shader_base_vert.spv
-glslangValidator -V shaders/shader_base.frag -o shaders/shader_base_frag.spv
+      <Command>glslangValidator -gVs -V shaders/shader_base.vert -o shaders/shader_base_vert.spv
+glslangValidator -gVs -V shaders/shader_base.frag -o shaders/shader_base_frag.spv
 glslangValidator -V shaders/LightdepthInfo.vert -o shaders/lightdepth_vert.spv
 glslangValidator -V shaders/LightdepthInfo.frag -o shaders/lightdepth_frag.spv
 glslangValidator -V shaders/shader_base_debug.vert -o shaders/shader_base_debug_vert.spv

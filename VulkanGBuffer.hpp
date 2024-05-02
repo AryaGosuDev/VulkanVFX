@@ -77,11 +77,15 @@ namespace VkApplication {
 		vkCmdBeginRenderPass(GbufferCommandBuffer[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		// albedo
+		
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.albedo);
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		
+		avatarInfo.avatarMotion = false; 
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		avatarInfo.avatarMotion = true;
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
@@ -89,9 +93,12 @@ namespace VkApplication {
 		//normals
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.normals);
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		
+		avatarInfo.avatarMotion = false;
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		avatarInfo.avatarMotion = true;
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
@@ -99,9 +106,12 @@ namespace VkApplication {
 		//depth info
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.depthInfo);
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		
+		avatarInfo.avatarMotion = false;
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		avatarInfo.avatarMotion = true;
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		vkCmdNextSubpass(GbufferCommandBuffer[imageIndex], VK_SUBPASS_CONTENTS_INLINE);
@@ -109,9 +119,12 @@ namespace VkApplication {
 		//world coords
 		vkCmdBindPipeline(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelines.worldCoord);
 		vkCmdBindDescriptorSets(GbufferCommandBuffer[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, GBufferPipelineLayout, 0, 1, &descriptorSetGBuffer[imageIndex], 0, nullptr);
-		
+		avatarInfo.avatarMotion = false;
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderObjectsIndexPass(objectsToRenderForFrame, imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices.size()), objectHash, vertexBuffer, indexBuffer);
 		renderDrawGround(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_ground.size()), vertexBuffer_ground, indexBuffer_ground);
+		avatarInfo.avatarMotion = true;
+		vkCmdPushConstants(GbufferCommandBuffer[imageIndex], GBufferPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(mainCharLocation), &avatarInfo);
 		renderDrawAvatar(imageIndex, GbufferCommandBuffer, static_cast<uint32_t>(indices_avatar.size()), vertexBuffer_avatar, indexBuffer_avatar);
 		
 		// End the picking render pass
@@ -368,13 +381,18 @@ namespace VkApplication {
 
 		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPassGBuffer) != VK_SUCCESS) 
 			throw std::runtime_error("failed to create render pass!");
+
+		VkPushConstantRange pushConstantRange{};
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;  
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(mainCharLocation);
 		
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 1;
 		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayoutGBuffer;
-		pipelineLayoutInfo.pushConstantRangeCount = 0;
-		pipelineLayoutInfo.pPushConstantRanges = nullptr;
+		pipelineLayoutInfo.pushConstantRangeCount = 1;
+		pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
 		check_vk_result(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &GBufferPipelineLayout));
 		
@@ -479,6 +497,7 @@ namespace VkApplication {
 		colorBlending.blendConstants[1] = 0.0f;
 		colorBlending.blendConstants[2] = 0.0f;
 		colorBlending.blendConstants[3] = 0.0f;
+		
 			
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 		pipelineInfo.stageCount = shaderStages.size();

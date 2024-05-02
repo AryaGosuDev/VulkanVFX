@@ -9,6 +9,12 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 orthoProj;
 	mat4 LightDepthView;
 } ubo;
+
+layout( push_constant ) uniform mainCharLocation {
+	mat4 avatarPos;
+	mat4 rotation;
+	bool avatarMotion;
+} pc;
    
 layout (location = 0 ) in vec3 color;
 layout (location = 1 ) in vec3 VertexNormal;
@@ -21,6 +27,9 @@ layout (location = 3 ) out vec3 LightPos;
 layout (location = 4 ) out vec3 NormalView;
  
 void main() {
-    Normal = mat3(transpose(inverse( ubo.model))) * VertexNormal;
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
+    mat4 modelTemp = ubo.model ;
+    if ( pc.avatarMotion == true ) modelTemp = pc.avatarPos * pc.rotation;
+    
+    Normal = mat3(transpose(inverse( modelTemp))) * VertexNormal;
+    gl_Position = ubo.proj * ubo.view * modelTemp * vec4(position, 1.0);
 }

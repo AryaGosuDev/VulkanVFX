@@ -85,8 +85,10 @@ namespace VkApplication {
 	const std::string GROUND_PATH = "models/ground.obj";
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
+	int secondCount = 0;
+
 	const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_shader_clock"
 	//VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME
 	};
 
@@ -268,7 +270,14 @@ namespace std {
 	};
 
 	struct PushConstants {
-		int useReflectionSampler;
+		glm::vec3 avatarPos;
+		float  timeStamp;
+	};
+
+	struct mainCharLocation {
+		glm::mat4 avatarPos;
+		glm::mat4 rotation;
+		bool avatarMotion;
 	};
 
 	struct {
@@ -591,6 +600,8 @@ private:
 
 	QuadTree worldQuadTree;
 	Thread_pool_frustrum_culling * FrustCullThreadPool;
+
+	mainCharLocation avatarInfo;
 
 	//***************************** LIGHT DEPTH MAP VARIABLES ****************************
 

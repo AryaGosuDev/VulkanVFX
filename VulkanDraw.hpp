@@ -48,12 +48,18 @@ namespace VkApplication {
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
+        PushConstants pushConstants;
+        pushConstants.avatarPos = glm::vec3(0.0, 0.5, 0.0);
+        //pushConstants.timeStamp = static_cast<float>(std::chrono::system_clock::now().time_since_epoch().count());
+        pushConstants.timeStamp = static_cast<float>(secondCount++);
+        //std::cout << pushConstants.timeStamp << std::endl;
+
         vkCmdBeginRenderPass(commandBuffers[imageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindDescriptorSets(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex], 0, NULL);
         vkCmdBindPipeline(commandBuffers[imageIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdPushConstants(commandBuffers[imageIndex], pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants);
         vkCmdDraw(commandBuffers[imageIndex], 6, 1, 0, 0); // draw quad
-        //vkCmdDraw(commandBuffers[imageIndex], 3, 1, 0, 0); // draw quad
         vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
         if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS) 
