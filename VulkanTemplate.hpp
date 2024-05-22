@@ -88,7 +88,11 @@ namespace VkApplication {
 	int secondCount = 0;
 
 	const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_shader_clock"
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_shader_clock", VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
 	//VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME
 	};
 
@@ -623,6 +627,11 @@ private:
 	VkDeviceMemory textureImageMemory_lightDepth;
 	VkSampler textureSampler_lightDepth;
 
+	//***************************** LIGHT DEPTH MAP VARIABLES ****************************
+	VkPipeline rayTracingPipeline;
+	VkPipelineLayout pipelineLayoutRT;
+	VkDescriptorSetLayout descriptorSetLayoutRT;
+
 	//**********************    FUNCTIONS *************************************
 	void createInstance(std::string appName);
 	//Create the viewport
@@ -703,6 +712,10 @@ private:
 
 	void LightDepthDraw();
 	void LightDepthRenderPipelineSetup();
+
+	void DrawRT();
+	void setupRT();
+	void pipelineLayoutSetupRT();
 	
 	void initVulkan(std::string appName ) {
 
@@ -842,6 +855,7 @@ namespace std {
 #include "VulkanTexture.hpp"
 #include "VulkanGBuffer.hpp"
 #include "VulkanLightDepth.hpp"
+#include "VulkanRT.hpp"
 #include "VulkanImgui.hpp"
 
 #endif

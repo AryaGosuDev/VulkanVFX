@@ -89,6 +89,9 @@
     <ClInclude Include="VulkanLightDepth.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanRT.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\gbuffer_albedo.frag" />
@@ -105,5 +108,9 @@
     <None Include="shaders\shader_base_debug.vert" />
     <None Include="shaders\LightdepthInfo.frag" />
     <None Include="shaders\LightdepthInfo.vert" />
+    <None Include="shaders\RT_closesthit.glsl" />
+    <None Include="shaders\RT_intersection.glsl" />
+    <None Include="shaders\RT_miss.glsl" />
+    <None Include="shaders\RT_raygen.glsl" />
   </ItemGroup>
 </Project>

@@ -192,6 +192,7 @@ del "$(ProjectDir)ValidationDebug.txt"
     <ClInclude Include="VulkanInstance.hpp" />
     <ClInclude Include="VulkanLightDepth.hpp" />
     <ClInclude Include="VulkanRenderSettings.hpp" />
+    <ClInclude Include="VulkanRT.hpp" />
     <ClInclude Include="VulkanSwapchain.hpp" />
     <ClInclude Include="VulkanSync.hpp" />
     <ClInclude Include="VulkanTemplate.hpp" />
@@ -209,6 +210,10 @@ del "$(ProjectDir)ValidationDebug.txt"
     <None Include="shaders\gbuffer_worldCoord.vert" />
     <None Include="shaders\LightdepthInfo.frag" />
     <None Include="shaders\LightdepthInfo.vert" />
+    <None Include="shaders\RT_closesthit.glsl" />
+    <None Include="shaders\RT_intersection.glsl" />
+    <None Include="shaders\RT_miss.glsl" />
+    <None Include="shaders\RT_raygen.glsl" />
     <None Include="shaders\shader_base.frag" />
     <None Include="shaders\shader_base.vert" />
     <None Include="shaders\shader_base_debug.frag" />
