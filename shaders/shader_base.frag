@@ -159,38 +159,3 @@ void main() {
 		//outColor = vec4 (rayDir, 1.0 );
 	}
 }
-/*
-uniform mat4 invViewMatrix;  // Inverse of the view matrix
-uniform mat4 invProjMatrix;  // Inverse of the projection matrix
-uniform vec2 screenResolution;  // Screen resolution (width, height)
-
-vec3 getCameraSpaceCoord(vec2 fragCoord) {
-    // Convert fragment coordinates to normalized device coordinates (NDC)
-    vec2 ndc = (fragCoord / screenResolution) * 2.0 - 1.0;
-    ndc.y *= -1;  // Flip y if necessary depending on the coordinate system
-
-    // Apply inverse projection to get coordinates in camera space
-    vec4 cameraSpacePos = invProjMatrix * vec4(ndc.x, ndc.y, 1.0, 1.0); // z = 1 for forward direction
-    cameraSpacePos /= cameraSpacePos.w; // Convert from homogeneous coordinates
-
-    return cameraSpacePos.xyz;
-}
-
-vec3 getRayDirection(vec2 fragCoord) {
-    vec3 cameraPosition = (invViewMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz; // Camera position in world space
-    vec3 cameraSpaceCoord = getCameraSpaceCoord(fragCoord);
-
-    // Transform camera space coordinate to world space to get the world position of the pixel
-    vec3 pixelWorldPosition = (invViewMatrix * vec4(cameraSpaceCoord, 1.0)).xyz;
-
-    // The ray direction is the vector from the camera position to the pixel position in world space
-    vec3 rayDirection = normalize(pixelWorldPosition - cameraPosition);
-    
-    return rayDirection;
-}
-
-void main() {
-    vec3 rayDir = getRayDirection(gl_FragCoord.xy);
-    // Now use rayDir for ray tracing or ray marching
-}
-*/

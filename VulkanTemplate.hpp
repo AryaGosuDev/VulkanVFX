@@ -41,8 +41,10 @@
 #include "imgui/imgui_impl_vulkan.h"
 #include "imgui/imgui_impl_glfw.h"
 
+//#define VK_ENABLE_BETA_EXTENSIONS
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan_core.h>
 #include <GLFW/glfw3.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -92,9 +94,16 @@ namespace VkApplication {
 	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
 	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+	VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+	VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
 	//VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME
 	};
+
+	template <typename T>
+	T align_up(T value, T alignment) {
+		return (value + alignment - 1) & ~(alignment - 1);
+	}
 
 	struct QueueFamilyIndices {
 		std::optional<uint32_t> graphicsFamily;
@@ -175,6 +184,39 @@ namespace std {
 	};
 }
 */
+
+	
+
+// Extends the buffer class and holds information for a shader binding table
+	struct ShaderBindingTable {
+		VkStridedDeviceAddressRegionKHR stridedDeviceAddressRegion{};
+		VkDevice device;
+		VkBuffer buffer = VK_NULL_HANDLE;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+		VkDescriptorBufferInfo descriptor;
+		VkDeviceSize size = 0;
+		VkDeviceSize alignment = 0;
+		void* mapped = nullptr;
+		/** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
+		VkBufferUsageFlags usageFlags;
+		/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
+		VkMemoryPropertyFlags memoryPropertyFlags;
+		VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		void unmap();
+		VkResult bind(VkDeviceSize offset = 0);
+		void setupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		void copyTo(void* data, VkDeviceSize size);
+		VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+		void destroy();
+	};
+
+	struct ShaderBindingTables {
+		ShaderBindingTable raygen;
+		ShaderBindingTable miss;
+		ShaderBindingTable hit;
+		ShaderBindingTable callable;
+	} shaderBindingTables;
 
 	class join_threads {
 		std::vector<std::thread>& threads;
@@ -313,6 +355,17 @@ namespace std {
 		VkDeviceMemory GBufferImageDepthMemory;
 
 	} ;
+
+	struct RTImageViews {
+		VkImage RTColorImage;
+		VkImageView RTColorImageView;
+		VkDeviceMemory RTColorImageMemory;
+
+		VkImage RTDepthImage;
+		VkImageView RTDepthImageView;
+		VkDeviceMemory RTDepthImageMemory;
+
+	};
 
 	struct Thread_pool_frustrum_culling;
 
@@ -626,11 +679,29 @@ private:
 
 	VkDeviceMemory textureImageMemory_lightDepth;
 	VkSampler textureSampler_lightDepth;
+	
+	//***************************** RT VARIABLES ****************************
 
-	//***************************** LIGHT DEPTH MAP VARIABLES ****************************
 	VkPipeline rayTracingPipeline;
 	VkPipelineLayout pipelineLayoutRT;
 	VkDescriptorSetLayout descriptorSetLayoutRT;
+
+	RTImageViews rtImageViews;
+	VkDescriptorSet descriptorSetRT;
+
+	VkFence renderFenceRT;
+	VkSemaphore finishedSemaphoreRT;
+	VkCommandBuffer commandBufferRT;
+
+	VkBuffer aabbBuffer_;
+	VkDeviceMemory aabbBufferMemory_;
+	VkBuffer asBuffer;
+	VkAccelerationStructureKHR blas_;
+
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
+
+	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups = {};
 
 	//**********************    FUNCTIONS *************************************
 	void createInstance(std::string appName);
@@ -715,7 +786,13 @@ private:
 
 	void DrawRT();
 	void setupRT();
-	void pipelineLayoutSetupRT();
+	void setupAS();
+	void descriptorLayoutSetupRT();
+	void setupSBTRT ();
+	void createAABBBuffer();
+	void createSBT();
+	void createShaderBindingTable(ShaderBindingTable& , uint32_t handleCount);
+	void recordCommandBuffer();
 	
 	void initVulkan(std::string appName ) {
 
@@ -764,6 +841,11 @@ private:
 		
 		createDescriptorSetGBuffer();
 		setupGBufferCommandBuffer();
+
+		setupRT();
+		descriptorLayoutSetupRT();
+		createSBT();
+		recordCommandBuffer();
 	}
 
 	void mainLoop() {

@@ -112,5 +112,6 @@
     <None Include="shaders\RT_intersection.glsl" />
     <None Include="shaders\RT_miss.glsl" />
     <None Include="shaders\RT_raygen.glsl" />
+    <None Include="shaders\RT_genData.glsl" />
   </ItemGroup>
 </Project>

@@ -159,7 +159,6 @@ namespace VkApplication {
 		if ( sign.y < 0.0) _app->avatarInfo.rotation = glm::rotate(glm::mat4(1.0f), -angle, world_up);
 		else _app->avatarInfo.rotation = glm::rotate(glm::mat4(1.0f), angle, world_up);
 		
-
 		// Update light depth view matrix for shadow mapping
 		_app->ubo.LightDepthView = glm::lookAt(glm::vec3(LightPosition), centerLoc, up);
 	}

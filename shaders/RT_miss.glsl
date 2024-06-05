@@ -1,7 +1,11 @@
-#version 450
+#version 460
 #extension GL_NV_ray_tracing : require
-layout(location = 0) rayPayloadInNV vec3 payload;
+
+#include "RT_genData.glsl"
+
+layout(location = 0) rayPayloadInNV RayGenData genData;
 
 void main() {
-    payload = vec3(0.0, 0.0, 0.0);  // Background color
+    genData.color = vec3(0.0, 0.0, 0.0);
+    genData.depth = tMax;
 }
