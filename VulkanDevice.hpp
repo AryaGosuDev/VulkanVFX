@@ -69,6 +69,22 @@ namespace VkApplication {
 		return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 	}
 
+	void MainVulkApplication::getEnabledFeatures() {
+		// Enable features required for ray tracing using feature chaining via pNext		
+		enabledBufferDeviceAddresFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+		enabledBufferDeviceAddresFeatures.bufferDeviceAddress = VK_TRUE;
+
+		enabledRayTracingPipelineFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+		enabledRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
+		enabledRayTracingPipelineFeatures.pNext = &enabledBufferDeviceAddresFeatures;
+
+		enabledAccelerationStructureFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+		enabledAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
+		enabledAccelerationStructureFeatures.pNext = &enabledRayTracingPipelineFeatures;
+
+		deviceCreatepNextChain = &enabledAccelerationStructureFeatures;
+	}
+
 	void MainVulkApplication::createLogicalDevice() {
 		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -90,12 +106,9 @@ namespace VkApplication {
 
 		VkDeviceCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
 		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
 		createInfo.pEnabledFeatures = &deviceFeatures;
-
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
 		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
@@ -103,8 +116,15 @@ namespace VkApplication {
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
 		}
-		else {
-			createInfo.enabledLayerCount = 0;
+		else createInfo.enabledLayerCount = 0;
+
+		VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
+		if (deviceCreatepNextChain) {
+			physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+			physicalDeviceFeatures2.features = deviceFeatures;
+			physicalDeviceFeatures2.pNext = deviceCreatepNextChain;
+			createInfo.pEnabledFeatures = nullptr;
+			createInfo.pNext = &physicalDeviceFeatures2;
 		}
 
 		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device) != VK_SUCCESS) {
@@ -124,10 +144,8 @@ namespace VkApplication {
 
 		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-		for (const auto& extension : availableExtensions) {
-			requiredExtensions.erase(extension.extensionName);
-		}
-
+		for (const auto& extension : availableExtensions) requiredExtensions.erase(extension.extensionName);
+		
 		// Check if there are any required extensions that are not supported
 		if (!requiredExtensions.empty()) {
 			std::cout << "\033[1;31mUnsupported extensions required:\033[0m" << std::endl;  // Red color start
@@ -153,20 +171,15 @@ namespace VkApplication {
 		int i = 0;
 		for (const auto& queueFamily : queueFamilies) {
 			//bit anding with VK_QUEUE_GRAPHICS_BIT grabs the index with that particular queue family
-			if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+			if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) 
 				indices.graphicsFamily = i;
-			}
-
+			
 			VkBool32 presentSupport = false;
 			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
 
-			if (queueFamily.queueCount > 0 && presentSupport) {
-				indices.presentFamily = i;
-			}
-
-			if (indices.isComplete()) {
-				break;
-			}
+			if (queueFamily.queueCount > 0 && presentSupport) indices.presentFamily = i;
+			
+			if (indices.isComplete()) break;
 
 			i++;
 		}

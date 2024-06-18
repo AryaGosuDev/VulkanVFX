@@ -90,7 +90,9 @@ namespace VkApplication {
 	int secondCount = 0;
 
 	const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME, "VK_KHR_shader_clock", VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME, 
+		"VK_KHR_shader_clock", 
+		VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
 	VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
 	VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
@@ -184,8 +186,18 @@ namespace std {
 	};
 }
 */
+	struct AccelerationStructure {
+		VkAccelerationStructureKHR handle;
+		uint64_t deviceAddress = 0;
+		VkDeviceMemory memory;
+		VkBuffer buffer;
+	};
 
-	
+	struct ScratchBuffer {
+		uint64_t deviceAddress = 0;
+		VkBuffer handle = VK_NULL_HANDLE;
+		VkDeviceMemory memory = VK_NULL_HANDLE;
+	};
 
 // Extends the buffer class and holds information for a shader binding table
 	struct ShaderBindingTable {
@@ -201,14 +213,49 @@ namespace std {
 		VkBufferUsageFlags usageFlags;
 		/** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
 		VkMemoryPropertyFlags memoryPropertyFlags;
-		VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		void unmap();
-		VkResult bind(VkDeviceSize offset = 0);
-		void setupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		void copyTo(void* data, VkDeviceSize size);
-		VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-		void destroy();
+
+		VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
+			return vkMapMemory(device, memory, offset, size, 0, &mapped);
+		}
+		void unmap() {
+			if (mapped)
+			{
+				vkUnmapMemory(device, memory);
+				mapped = nullptr;
+			}
+		}
+		VkResult bind(VkDeviceSize offset = 0) {
+			return vkBindBufferMemory(device, buffer, memory, offset);
+		}
+		void setupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
+			descriptor.offset = offset;
+			descriptor.buffer = buffer;
+			descriptor.range = size;
+		}
+		void copyTo(void* data, VkDeviceSize size) {
+			assert(mapped);
+			memcpy(mapped, data, size);
+		}
+		VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
+			VkMappedMemoryRange mappedRange = {};
+			mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			mappedRange.memory = memory;
+			mappedRange.offset = offset;
+			mappedRange.size = size;
+			return vkFlushMappedMemoryRanges(device, 1, &mappedRange);
+		}
+		VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
+			VkMappedMemoryRange mappedRange = {};
+			mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+			mappedRange.memory = memory;
+			mappedRange.offset = offset;
+			mappedRange.size = size;
+			return vkInvalidateMappedMemoryRanges(device, 1, &mappedRange);
+		}
+		void destroy() {
+			if (buffer) vkDestroyBuffer(device, buffer, nullptr);
+			if (memory)vkFreeMemory(device, memory, nullptr);
+		}
 	};
 
 	struct ShaderBindingTables {
@@ -701,7 +748,30 @@ private:
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
 
+	// Enabled features and properties
+	VkPhysicalDeviceBufferDeviceAddressFeatures enabledBufferDeviceAddresFeatures{};
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR enabledRayTracingPipelineFeatures{};
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR enabledAccelerationStructureFeatures{};
+
 	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shaderGroups = {};
+
+	AccelerationStructure bottomLevelAS;
+	AccelerationStructure topLevelAS;
+	ScratchBuffer scratchBuffer;
+
+	// Function pointers for ray tracing related stuff
+	PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR;
+	PFN_vkCreateAccelerationStructureKHR vkCreateAccelerationStructureKHR;
+	PFN_vkDestroyAccelerationStructureKHR vkDestroyAccelerationStructureKHR;
+	PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR;
+	PFN_vkGetAccelerationStructureDeviceAddressKHR vkGetAccelerationStructureDeviceAddressKHR;
+	PFN_vkBuildAccelerationStructuresKHR vkBuildAccelerationStructuresKHR;
+	PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR;
+	PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR;
+	PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR;
+	PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR;
+
+	void* deviceCreatepNextChain = nullptr;
 
 	//**********************    FUNCTIONS *************************************
 	void createInstance(std::string appName);
@@ -714,6 +784,7 @@ private:
 	void pickPhysicalDevice();
 	bool isDeviceSuitable(VkPhysicalDevice device);
 	void createLogicalDevice();
+	void getEnabledFeatures();
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice );
 	bool checkDeviceExtensionSupport(VkPhysicalDevice );
 
@@ -743,7 +814,7 @@ private:
 	void createVertexBuffer();
 	void createVertexLowPolyBuffer();
 	void createBuffer(VkDeviceSize, VkBufferUsageFlags,
-		VkMemoryPropertyFlags, VkBuffer&, VkDeviceMemory&);
+		VkMemoryPropertyFlags, VkBuffer&, VkDeviceMemory&, bool deviceAddressCond = false);
 	void createIndexBuffer();
 	void createGeometryBuffer(std::vector<Vertex>&, VkBuffer&, VkDeviceMemory&);
 	void createIndexBuffer(std::vector<uint32_t>&, VkBuffer&, VkDeviceMemory&);
@@ -793,6 +864,9 @@ private:
 	void createSBT();
 	void createShaderBindingTable(ShaderBindingTable& , uint32_t handleCount);
 	void recordCommandBuffer();
+	void createAccelerationStructure(AccelerationStructure& accelerationStructure, VkAccelerationStructureTypeKHR type, VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo);
+	void createScratchBuffer(VkDeviceSize size);
+	
 	
 	void initVulkan(std::string appName ) {
 
@@ -802,6 +876,8 @@ private:
 
 		createSurface();
 		pickPhysicalDevice();
+		//should only be used if ray tracing is required
+		getEnabledFeatures();
 		createLogicalDevice();
 
 		createSwapChain();

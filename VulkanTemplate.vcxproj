@@ -146,7 +146,10 @@ glslangValidator -V shaders/gbuffer_worldCoord.frag -o shaders/gbuffer_worldCoor
 glslangValidator -V shaders/RT_closesthit.glsl -o shaders/RT_closesthit.spv
 glslangValidator -V shaders/RT_intersection.glsl -o shaders/RT_intersection.spv
 glslangValidator -V shaders/RT_miss.glsl -o shaders/RT_miss.spv
-glslangValidator -V shaders/RT_raygen.glsl -o shaders/RT_raygen.spv
+glslangValidator -V --target-env vulkan1.2 shaders/RT_raygen.rgen -o shaders/RT_raygen.spv
+glslangValidator -V --target-env vulkan1.2 shaders/RT_miss.rmiss -o shaders/RT_miss.spv
+glslangValidator -V --target-env vulkan1.2 shaders/RT_intersection.rint -o shaders/RT_intersection.spv
+glslangValidator -V --target-env vulkan1.2 shaders/RT_closesthit.rchit -o shaders/RT_closesthit.spv
 del "ValidationDebug.txt"</Command>
     </CustomBuildStep>
     <CustomBuildStep>

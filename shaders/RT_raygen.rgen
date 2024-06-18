@@ -1,6 +1,8 @@
-#version 450
-#extension GL_NV_ray_tracing : require
+#version 460
+#extension GL_EXT_ray_tracing  : require
+#extension GL_GOOGLE_include_directive : require
 
+#include "RT_genData.h"
 layout(set = 0, binding = 0) uniform UniformBufferObject{
     mat4 model;
     mat4 view;
@@ -11,14 +13,11 @@ layout(set = 0, binding = 0) uniform UniformBufferObject{
     mat4 LightDepthView;
 } ubo;
 
-#include "RT_genData.glsl"
-
 layout(set = 0, binding = 1, rgba8) uniform image2D outputImage;
-layout(set = 0, binding = 2, r32f) uniform image2D depthImage;
-layout(set = 0, binding = 3, r32f) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 2, rgba32f) uniform image2D depthImage;
+layout(set = 0, binding = 3) uniform accelerationStructureEXT topLevelAS;
 
-
-layout(location = 0) rayPayloadInNV RayGenData genData;
+layout(location = 0) rayPayloadEXT RayGenData genData;
 
 void main() {
 
@@ -26,7 +25,7 @@ void main() {
     vec2 ndc = vec2(gl_LaunchIDEXT.xy) / vec2(gl_LaunchSizeEXT.xy) * 2.0 - 1.0;
     //ndc.y = -ndc.y;
 
-    vec4 target = inverse ( ubo.proj) * vec4(ndc.x, ndcd.y, 1, 1);
+    vec4 target = inverse ( ubo.proj) * vec4(ndc.x, ndc.y, 1, 1);
     vec4 rayD = inverse(ubo.view) * vec4(normalize(target.xyz), 0);
 
     uint  rayFlags = gl_RayFlagsOpaqueEXT;
@@ -50,6 +49,5 @@ void main() {
     );
 
     imageStore(outputImage, ivec2(gl_LaunchIDEXT.xy), vec4(genData.color, 1.0));
-    imageStore(depthImage, ivec2(gl_LaunchIDEXT.xy), depth);
-}
+    imageStore(depthImage, ivec2(gl_LaunchIDEXT.xy), vec4(genData.depth,0.0,0.0,0.0));
 }
