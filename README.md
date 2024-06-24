@@ -16,6 +16,7 @@ Open in VS and run as debug.
 * Multi threaded frustum culling algorithm to prune large sections of geometry per frame.
 * Shadow Mapping.
 * ImGUI.
+* Hybrid Ray-tracing and Frustum rendering engine.
 
 ## Needed Features
 * Particle systems.
