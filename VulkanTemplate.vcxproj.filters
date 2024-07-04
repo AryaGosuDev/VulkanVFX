@@ -108,10 +108,9 @@
     <None Include="shaders\shader_base_debug.vert" />
     <None Include="shaders\LightdepthInfo.frag" />
     <None Include="shaders\LightdepthInfo.vert" />
-    <None Include="shaders\RT_closesthit.glsl" />
-    <None Include="shaders\RT_intersection.glsl" />
-    <None Include="shaders\RT_miss.glsl" />
-    <None Include="shaders\RT_raygen.glsl" />
-    <None Include="shaders\RT_genData.glsl" />
+    <None Include="shaders\RT_closesthit.rchit" />
+    <None Include="shaders\RT_intersection.rint" />
+    <None Include="shaders\RT_miss.rmiss" />
+    <None Include="shaders\RT_raygen.rgen" />
   </ItemGroup>
 </Project>

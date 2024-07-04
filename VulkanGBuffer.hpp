@@ -151,7 +151,7 @@ namespace VkApplication {
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &GbufferCommandBuffer[imageIndex];
 
-		vkResetFences(device, 1, &GBufferFence[currentFrame]);
+		check_vk_result(vkResetFences(device, 1, &GBufferFence[currentFrame]));
 
 		check_vk_result(vkQueueSubmit(graphicsQueue, 1, &submitInfo, GBufferFence[currentFrame]));
 	}

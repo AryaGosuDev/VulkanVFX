@@ -3,7 +3,9 @@
 #extension GL_GOOGLE_include_directive : require
 
 #include "RT_genData.h"
-layout(set = 0, binding = 0) uniform UniformBufferObject{
+
+layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 1) uniform UniformBufferObject{
     mat4 model;
     mat4 view;
     mat4 proj;
@@ -13,9 +15,8 @@ layout(set = 0, binding = 0) uniform UniformBufferObject{
     mat4 LightDepthView;
 } ubo;
 
-layout(set = 0, binding = 1, rgba8) uniform image2D outputImage;
-layout(set = 0, binding = 2, rgba32f) uniform image2D depthImage;
-layout(set = 0, binding = 3) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 2, rgba8) uniform image2D outputImage;
+layout(set = 0, binding = 3, rgba32f) uniform image2D depthImage;
 
 layout(location = 0) rayPayloadEXT RayGenData genData;
 
@@ -30,10 +31,8 @@ void main() {
 
     uint  rayFlags = gl_RayFlagsOpaqueEXT;
 
-
     genData.color = vec3(0.0, 0.0, 0.0); // Initialize payload
     genData.depth = 1.0;
-
 
     traceRayEXT(topLevelAS,     // acceleration structure
         rayFlags,       // rayFlags

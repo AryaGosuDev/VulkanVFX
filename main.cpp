@@ -79,47 +79,7 @@ namespace VkApplication {
 		_app->ubo.orthoProj =	   glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, 1.0f, 100.0f);
 		_app->ubo.LightDepthView = glm::lookAt(glm::vec3(LightPosition), centerLoc, up);
 	}
-	/*
-	void updateUniformBuffer(VkApplication::MainVulkApplication* _app) {
 
-		if (motionFlying == true) {
-			mainEyeLoc.x = (cameraDistance * float(sin(phi)) * float(cos(theta))) + avatarLocation.x;
-			mainEyeLoc.y = (cameraDistance * float(cos(phi))) + avatarLocation.y;
-			mainEyeLoc.z = (cameraDistance * float(sin(theta)) * float(sin(phi))) + avatarLocation.z;
-			//centerLoc = avatarLocation + avatarLookingDir * cameraDistance;
-			_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
-		}
-
-		if (motionTurning == true && movingMouse == true) {
-			
-			glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), (float)thetaRotation * rotationSpeed, world_up);
-			avatarLookingDir = glm::vec3(rotationMatrix * glm::vec4(avatarLookingDir, 0.0f));
-			avatarLookingDir = glm::normalize(avatarLookingDir);
-			mainEyeLoc = (avatarLocation + -avatarLookingDir * cameraDistance) + glm::vec3(0.0f, 1.0f, 0.0f);
-			centerLoc = avatarLookingDir * cameraDistance + mainEyeLoc;
-
-			_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
-			movingMouse = false;
-		}
-
-		if (forwardMovement == true && motionMoving == true) {
-			if (glfwGetKey(_app->window, GLFW_KEY_W) == GLFW_PRESS) {
-				avatarLocation += avatarLookingDir * 0.2f;  // Adjust movement speed as necessary
-			}
-			//avatarLocation += avatarLookingDir * 0.2;
-			mainEyeLoc = avatarLocation + initialCameraOffset;
-			centerLoc = glm::normalize(avatarLookingDir) * cameraDistance + mainEyeLoc;
-
-			//motionMoving = false;
-			_app->ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
-		}
-
-		_app->avatarInfo.avatarPos = glm::translate(glm::mat4(1.0f), avatarLocation);
-		_app->avatarInfo.rotation =  glm::rotate(glm::mat4(1.0f), (float)thetaRotation * rotationSpeed, world_up);
-
-		_app->ubo.LightDepthView = glm::lookAt(glm::vec3(LightPosition), centerLoc, up);
-	}
-	*/
 	void updateUniformBuffer(VkApplication::MainVulkApplication* _app) {
 		// Continuous movement forward with 'W' key press.
 		if (glfwGetKey(_app->window, GLFW_KEY_W) == GLFW_PRESS) {

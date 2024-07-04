@@ -1,5 +1,4 @@
 #version 450
-//#extension GL_EXT_shader_realtime_clock : require
 #extension GL_ARB_gpu_shader_int64 : enable
 
 #define MAX_STEPS 32
@@ -28,7 +27,8 @@ layout(set = 0, binding = 2) uniform sampler2D albedoSampler;
 layout(set = 0, binding = 3) uniform sampler2D depthInfoSampler;
 layout(set = 0, binding = 4) uniform sampler2D normalSampler;
 layout(set = 0, binding = 5) uniform sampler2D worldCoordSampler;
-layout(set = 0, binding = 6) uniform sampler2D lightDepthMap;
+layout(set = 0, binding = 6) uniform sampler2D colorMapRT;
+layout(set = 0, binding = 7) uniform sampler2D depthMapRT;
 
 layout (location = 0 ) in vec2 texCoords;
 layout (location = 1 ) in vec3 lightPosIn ;
@@ -130,6 +130,9 @@ void main() {
 	vec3 worldPosition =  texture(worldCoordSampler, texCoords).rgb;
 	vec3 albColor =  texture(albedoSampler, texCoords).rgb;
 	float depthToPoint = length ( worldPosition - camPos ) ;
+	vec3 RT_color = texture ( colorMapRT, texCoords).rgb;
+	float RT_dist = texture ( depthMapRT, texCoords).r;
+	float depthInfoP = texture ( depthInfoSampler, texCoords).r;
 
 	vec3 lightDirectionView = normalize ( lightPosIn - vec3(worldPosition));
 
@@ -137,25 +140,15 @@ void main() {
 	vec3 scatteredLight = vec3(albColor * diffuse) ;
 	vec2 tempScreenRes = vec2 ( 1600.0, 1200.0 );
 
-	vec3 rayO = camPos ; // get cameras position
-	vec2 uv = (texCoords - 0.5) * 2.0;
-	//vec2 uv = (texCoords * 2.0) - 1.0;
-	//vec2 uv = (2.0f * texCoords - tempScreenRes)/tempScreenRes.y;
-	float aspectRatio = 1600.0 /1200.0;
-	//vec3 rayDir = normalize(vec3(uv, 1.0));
-	vec3 rayDir = normalize(vec3(uv.x   , uv.y , 1.0));
-	//vec3 newRayDir = getRayDirection(gl_FragCoord.xy);
-	float d = RayMarch(rayO, rayDir);
+	//if ( RT_dist < 100.0f && RT_dist < depthInfoP  ) 
+	if ( RT_dist < 100.0f && RT_dist < depthInfoP    ) 
 
-	//hit sdf
-	if( d < MAX_DIST && d < depthToPoint  ) {
-		vec3 finalColor = finalColorPattern ( uv ) ;
-		vec3 blendedColor = mix(scatteredLight, vec3(0.0,0.0,1.0), 0.5);
-		outColor = vec4(finalColor,1.0f);
-		//outColor = vec4(blendedColor,1.0f);
-	}
+		outColor = vec4 (RT_color, 1.0f );
+
+	
 	else {
 		outColor = vec4 (scatteredLight, 1.0f );
-		//outColor = vec4 (rayDir, 1.0 );
 	}
+	
+		
 }

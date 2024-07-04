@@ -5,8 +5,10 @@
 #include "RT_genData.h"
 
 // Define the sphere parameters
-const vec3 sphereCenter = vec3(0.0, 0.0, 0.0);
-const float sphereRadius = 1.0;
+const vec3 sphereCenter = vec3(2.0, 2.0, 2.0);
+const float sphereRadius = 1.0f;
+
+hitAttributeEXT vec3 attribs;
 
 void main() {
     vec3 rayO = gl_WorldRayOriginEXT;
@@ -17,9 +19,14 @@ void main() {
     float c = dot(oc, oc) - sphereRadius * sphereRadius;
     float discriminant = b * b - c;
 
+    vec3 hitPosition ;
+
     if (discriminant > 0.0) {
         float t = -b - sqrt(discriminant);
-        if (t > 0.0) // Report intersection
-            reportIntersectionEXT(t, 0);
+        if (t > 0.0){ // Report intersection
+            attribs = rayO + t * rayD ;
+
+            reportIntersectionEXT(t, 0); // invokes a closesthit shader on the ray, or goes to a miss shader
+        }
     }
 }

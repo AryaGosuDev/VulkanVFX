@@ -143,9 +143,6 @@ glslangValidator -V shaders/gbuffer_normals.vert -o shaders/gbuffer_normals_vert
 glslangValidator -V shaders/gbuffer_normals.frag -o shaders/gbuffer_normals_frag.spv
 glslangValidator -V shaders/gbuffer_worldCoord.vert -o shaders/gbuffer_worldCoord_vert.spv
 glslangValidator -V shaders/gbuffer_worldCoord.frag -o shaders/gbuffer_worldCoord_frag.spv
-glslangValidator -V shaders/RT_closesthit.glsl -o shaders/RT_closesthit.spv
-glslangValidator -V shaders/RT_intersection.glsl -o shaders/RT_intersection.spv
-glslangValidator -V shaders/RT_miss.glsl -o shaders/RT_miss.spv
 glslangValidator -V --target-env vulkan1.2 shaders/RT_raygen.rgen -o shaders/RT_raygen.spv
 glslangValidator -V --target-env vulkan1.2 shaders/RT_miss.rmiss -o shaders/RT_miss.spv
 glslangValidator -V --target-env vulkan1.2 shaders/RT_intersection.rint -o shaders/RT_intersection.spv
@@ -156,7 +153,7 @@ del "ValidationDebug.txt"</Command>
       <Outputs>shaders/shader_base_vert.spv;shaders/shader_base_frag.spv;shaders/shader_base_debug_vert.spv;shaders/shader_base_debug_frag.spv;shaders/gbuffer_albedo_vert.spv;shaders/gbuffer_albedo_frag.spv;shaders/gbuffer_depthInfo_vert.spv;shaders/gbuffer_depthInfo_frag.spv;shaders/gbuffer_normals_vert.spv;shaders/gbuffer_normals_frag.spv;shaders/gbuffer_worldCoord_vert.spv;shaders/gbuffer_worldCoord_frag.spv;shaders/lightdepth_vert.spv;shaders/lightdepth_frag.spv;shaders/RT_closesthit.spv;shaders/RT_intersection.spv;shaders/RT_miss.spv;shaders/RT_raygen.spv;%(Outputs)</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>shaders/shader_base.vert;shaders/shader_base.frag;shaders/shader_base_debug.vert;shaders/shader_base_debug.frag;shaders/gbuffer_albedo.vert;shaders/gbuffer_albedo.frag;shaders/gbuffer_depthInfo.vert;shaders/gbuffer_depthInfo.frag;shaders/gbuffer_normals.vert;shaders/gbuffer_normals.frag;shaders/gbuffer_worldCoord.vert;shaders/gbuffer_worldCoord.frag;shaders/LightdepthInfo.vert;shaders/LightdepthInfo.frag;shaders/RT_closesthit.glsl;shaders/RT_intersection.glsl;shaders/RT_miss.glsl;shaders/RT_raygen.glsl;%(Inputs)</Inputs>
+      <Inputs>shaders/shader_base.vert;shaders/shader_base.frag;shaders/shader_base_debug.vert;shaders/shader_base_debug.frag;shaders/gbuffer_albedo.vert;shaders/gbuffer_albedo.frag;shaders/gbuffer_depthInfo.vert;shaders/gbuffer_depthInfo.frag;shaders/gbuffer_normals.vert;shaders/gbuffer_normals.frag;shaders/gbuffer_worldCoord.vert;shaders/gbuffer_worldCoord.frag;shaders/LightdepthInfo.vert;shaders/LightdepthInfo.frag;shaders/RT_raygen.rgen;shaders/RT_miss.rmiss;shaders/RT_intersection.rint;shaders/RT_closesthit.rchit;%(Inputs)</Inputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -215,11 +212,10 @@ del "ValidationDebug.txt"</Command>
     <None Include="shaders\gbuffer_worldCoord.vert" />
     <None Include="shaders\LightdepthInfo.frag" />
     <None Include="shaders\LightdepthInfo.vert" />
-    <None Include="shaders\RT_closesthit.glsl" />
-    <None Include="shaders\RT_genData.glsl" />
-    <None Include="shaders\RT_intersection.glsl" />
-    <None Include="shaders\RT_miss.glsl" />
-    <None Include="shaders\RT_raygen.glsl" />
+    <None Include="shaders\RT_closesthit.rchit" />
+    <None Include="shaders\RT_intersection.rint" />
+    <None Include="shaders\RT_miss.rmiss" />
+    <None Include="shaders\RT_raygen.rgen" />
     <None Include="shaders\shader_base.frag" />
     <None Include="shaders\shader_base.vert" />
     <None Include="shaders\shader_base_debug.frag" />

@@ -75,15 +75,17 @@ static void check_vk_result(VkResult err) {
 
 namespace VkApplication {
 
-	//const std::string WORLD_PATH = "models/city.obj";
+	const std::string WORLD_PATH = "models/city.obj";
 	//const std::string WORLD_PATH = "models/city_reduced.obj";
-	const std::string WORLD_PATH = "models/simpleCubes.obj";
+	//const std::string WORLD_PATH = "models/simpleCubes.obj";
+
 	const std::string WORLD_PATH_LOWPOLY = "models/city_lowpoly.obj";
 	const std::string AVATAR_PATH = "models/avatar.obj";
 	const std::string TEXTURE_PATH = "";
-	//const std::string WORLD_AABB_PATH = "models/output_AABB.csv";
+
+	const std::string WORLD_AABB_PATH = "models/output_AABB.csv";
 	//const std::string WORLD_AABB_PATH = "models/output_AABB_reduced.csv";
-	const std::string WORLD_AABB_PATH = "models/output_AABB_SimpleCubes.csv";
+	//const std::string WORLD_AABB_PATH = "models/output_AABB_SimpleCubes.csv";
 	const std::string GROUND_PATH = "models/ground.obj";
 	constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -202,7 +204,7 @@ namespace std {
 // Extends the buffer class and holds information for a shader binding table
 	struct ShaderBindingTable {
 		VkStridedDeviceAddressRegionKHR stridedDeviceAddressRegion{};
-		VkDevice device;
+		VkDevice * device;
 		VkBuffer buffer = VK_NULL_HANDLE;
 		VkDeviceMemory memory = VK_NULL_HANDLE;
 		VkDescriptorBufferInfo descriptor;
@@ -215,17 +217,17 @@ namespace std {
 		VkMemoryPropertyFlags memoryPropertyFlags;
 
 		VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
-			return vkMapMemory(device, memory, offset, size, 0, &mapped);
+			return vkMapMemory(*device, memory, offset, size, 0, &mapped);
 		}
 		void unmap() {
 			if (mapped)
 			{
-				vkUnmapMemory(device, memory);
+				vkUnmapMemory(*device, memory);
 				mapped = nullptr;
 			}
 		}
 		VkResult bind(VkDeviceSize offset = 0) {
-			return vkBindBufferMemory(device, buffer, memory, offset);
+			return vkBindBufferMemory(*device, buffer, memory, offset);
 		}
 		void setupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
 			descriptor.offset = offset;
@@ -242,7 +244,7 @@ namespace std {
 			mappedRange.memory = memory;
 			mappedRange.offset = offset;
 			mappedRange.size = size;
-			return vkFlushMappedMemoryRanges(device, 1, &mappedRange);
+			return vkFlushMappedMemoryRanges(*device, 1, &mappedRange);
 		}
 		VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0) {
 			VkMappedMemoryRange mappedRange = {};
@@ -250,11 +252,11 @@ namespace std {
 			mappedRange.memory = memory;
 			mappedRange.offset = offset;
 			mappedRange.size = size;
-			return vkInvalidateMappedMemoryRanges(device, 1, &mappedRange);
+			return vkInvalidateMappedMemoryRanges(*device, 1, &mappedRange);
 		}
 		void destroy() {
-			if (buffer) vkDestroyBuffer(device, buffer, nullptr);
-			if (memory)vkFreeMemory(device, memory, nullptr);
+			if (buffer) vkDestroyBuffer(*device, buffer, nullptr);
+			if (memory)vkFreeMemory(*device, memory, nullptr);
 		}
 	};
 
@@ -732,6 +734,7 @@ private:
 	VkPipeline rayTracingPipeline;
 	VkPipelineLayout pipelineLayoutRT;
 	VkDescriptorSetLayout descriptorSetLayoutRT;
+	VkDescriptorPool descriptorPoolRT;
 
 	RTImageViews rtImageViews;
 	VkDescriptorSet descriptorSetRT;
@@ -743,7 +746,6 @@ private:
 	VkBuffer aabbBuffer_;
 	VkDeviceMemory aabbBufferMemory_;
 	VkBuffer asBuffer;
-	VkAccelerationStructureKHR blas_;
 
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR  rayTracingPipelineProperties{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{};
@@ -859,6 +861,7 @@ private:
 	void setupRT();
 	void setupAS();
 	void descriptorLayoutSetupRT();
+	void createDescriptorSetsRT();
 	void setupSBTRT ();
 	void createAABBBuffer();
 	void createSBT();
@@ -895,8 +898,12 @@ private:
 		//createTextureImage();
 		//createTextureImageView();
 		createTextureSampler();
+		createUniformBuffers();
 
 		GbufferRenderPipelineSetup();
+		
+		descriptorLayoutSetupRT();
+		setupRT();
 		
 		loadModel();
 		createVertexBuffer();
@@ -907,7 +914,7 @@ private:
 		createIndexBuffer(indices_avatar, indexBuffer_avatar, indexBufferMemory_avatar);
 		//createVertexLowPolyBuffer();
 		//createIndexLowPolyBuffer();
-		createUniformBuffers();
+		
 		
 		createDescriptorSets();
 		//createDescriptorSetsDebug();
@@ -917,11 +924,9 @@ private:
 		
 		createDescriptorSetGBuffer();
 		setupGBufferCommandBuffer();
-
-		setupRT();
-		descriptorLayoutSetupRT();
+		
 		createSBT();
-		recordCommandBuffer();
+		//recordCommandBuffer();
 	}
 
 	void mainLoop() {

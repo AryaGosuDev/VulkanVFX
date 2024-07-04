@@ -26,6 +26,7 @@ namespace VkApplication {
 
         GBufferDraw(imageIndex);
         //LightDepthDraw();
+        DrawRT();
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -69,9 +70,9 @@ namespace VkApplication {
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         //VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame], gBufferCompleteSemaphore , LightDepthCompleteSemaphore };
-        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame], gBufferCompleteSemaphore };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT };
-        submitInfo.waitSemaphoreCount = 2;
+        VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame], gBufferCompleteSemaphore,finishedSemaphoreRT };
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT , VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR };
+        submitInfo.waitSemaphoreCount = 3;
         submitInfo.pWaitSemaphores = waitSemaphores;
         submitInfo.pWaitDstStageMask = waitStages;
 
@@ -232,7 +233,7 @@ namespace VkApplication {
     }
 
     void MainVulkApplication::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
-        VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory, bool deviceAddressCond ) {
+        VkMemoryPropertyFlags memoryPropertyFlags, VkBuffer& buffer, VkDeviceMemory& bufferMemory, bool deviceAddressCond ) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
@@ -248,7 +249,7 @@ namespace VkApplication {
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, memoryPropertyFlags);
         allocInfo.pNext = NULL;
 
         VkMemoryAllocateFlagsInfo allocFlagsInfo{};
