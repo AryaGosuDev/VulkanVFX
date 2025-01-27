@@ -18,6 +18,5 @@ layout (location = 0 ) out vec4 lightPosTransformed ;
  
 void main() {
 
-
     gl_Position = ubo.orthoProj * ubo.LightDepthView * ubo.model * vec4(position, 1.0);
 }

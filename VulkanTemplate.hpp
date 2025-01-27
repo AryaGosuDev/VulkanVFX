@@ -47,18 +47,18 @@
 #include <vulkan/vulkan_core.h>
 #include <GLFW/glfw3.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb/stb_image.h>
+//#define STB_IMAGE_IMPLEMENTATION
+//#include <stb/stb_image.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tinyObjLoader/tiny_obj_loader.h>
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+//#include <assimp/Importer.hpp>
+//#include <assimp/scene.h>
+//#include <assimp/postprocess.h>
 
 #ifdef _DEBUG
-constexpr bool enableValidationLayers = true;
+constexpr bool enableValidationLayers = false;
 #else
 constexpr bool enableValidationLayers = false;
 #endif
@@ -597,7 +597,7 @@ private:
 	
 	GLFWwindow* window;
 	ImGui_ImplVulkanH_Window imgui_window;
-	Assimp::Importer importer;
+	//Assimp::Importer importer;
 
 	VkInstance instance;
 	VkDebugUtilsMessengerEXT debugMessenger;
@@ -914,7 +914,6 @@ private:
 		createIndexBuffer(indices_avatar, indexBuffer_avatar, indexBufferMemory_avatar);
 		//createVertexLowPolyBuffer();
 		//createIndexLowPolyBuffer();
-		
 		
 		createDescriptorSets();
 		//createDescriptorSetsDebug();

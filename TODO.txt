@@ -1,4 +1,20 @@
+- Temporarily disabled the validation layers to nsight can profile the shader.
+Disabled the code base : 
 
+
+#ifdef _DEBUG
+constexpr bool enableValidationLayers = false;
+#else
+constexpr bool enableValidationLayers = false;
+#endif
+
+
+	const std::vector<const char*> validationLayers = {
+		//"VK_LAYER_KHRONOS_validation",
+		//"VK_LAYER_LUNARG_standard_validation"
+	};
+
+Also removed the env variables, can be restored by referencing the screen shot on the desktop.
 
 - write deconstructor to quadTree class
 

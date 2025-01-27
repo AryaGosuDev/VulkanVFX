@@ -130,6 +130,7 @@ namespace VkApplication {
     }
 
     void MainVulkApplication::createVertexBuffer() {
+        using std::cout; using std::endl;
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
         VkBuffer stagingBuffer;
@@ -143,6 +144,7 @@ namespace VkApplication {
         memcpy(data, vertices.data(), (size_t)bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
+        cout << "Vertex Buffer Size : " << static_cast<uint64_t>(bufferSize) << endl;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
@@ -176,6 +178,7 @@ namespace VkApplication {
     }
 
     void MainVulkApplication::createIndexBuffer() {
+        using std::cout; using std::endl;
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
         VkBuffer stagingBuffer;
@@ -189,6 +192,7 @@ namespace VkApplication {
         memcpy(data, indices.data(), (uint32_t)bufferSize);
         vkUnmapMemory(device, stagingBufferMemory);
 
+        cout << "Index Buffer Size : " << static_cast<uint64_t>(bufferSize) << endl;
         createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, 
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 

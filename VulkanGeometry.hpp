@@ -74,7 +74,7 @@ namespace VkApplication {
 		ss >> x >> comma >> y >> comma >> z;
 		return glm::vec3(x, y, z);
 	}
-
+	/*
 	void processMesh(aiMesh* mesh, const aiScene* scene) {
 		// Process vertices, normals, texture coordinates, etc.
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
@@ -95,7 +95,7 @@ namespace VkApplication {
 			// Process bone data
 		}
 	}
-
+	
 	void processNode(aiNode* node, const aiScene* scene) {
 		for (unsigned int i = 0; i < node->mNumMeshes; i++) {
 			aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
@@ -106,6 +106,7 @@ namespace VkApplication {
 			processNode(node->mChildren[i], scene);
 		}
 	}
+	*/
 
 	inline bool isAABBOutsidePlane(const AABB& box, const Plane& plane) {
 		// Count vertices outside the plane

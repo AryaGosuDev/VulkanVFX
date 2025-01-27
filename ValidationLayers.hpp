@@ -11,7 +11,7 @@ namespace VkApplication {
 	std::ofstream ValidationLayerLogFile;
 
 	const std::vector<const char*> validationLayers = {
-		"VK_LAYER_KHRONOS_validation",
+		//"VK_LAYER_KHRONOS_validation",
 		//"VK_LAYER_LUNARG_standard_validation"
 	};
 
@@ -71,8 +71,6 @@ namespace VkApplication {
 		if (enableValidationLayers)  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		return extensions;
 	}
-
-	
 
 	static std::vector<char> readFile(const std::string& filename) {
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);

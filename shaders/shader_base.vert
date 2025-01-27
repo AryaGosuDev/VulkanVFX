@@ -11,12 +11,12 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
 } ubo;
    
 layout (location = 0 ) out vec2 texCoordsOut;
-layout (location = 1 ) out vec3 lightPosOut ;
-layout (location = 2 ) out vec3 camPos;
-layout (location = 3 ) out mat3 invRotCam ;
-layout (location = 7 ) out mat4 invProjMatrix;
-layout (location = 13 ) out mat4 invViewMatrix ;
-layout (location = 20 ) out mat3 camRot;
+layout (location = 1 ) flat out vec3 lightPosOut ;
+layout (location = 2 ) flat out vec3 camPos;
+layout (location = 3 ) flat out mat3 invRotCam ;
+layout (location = 7 ) flat out mat4 invProjMatrix;
+layout (location = 13 ) flat out mat4 invViewMatrix ;
+layout (location = 20 ) flat out mat3 camRot;
 
 void main() {
     mat3 invRot = transpose(mat3(ubo.view));

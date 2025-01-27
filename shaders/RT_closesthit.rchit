@@ -24,15 +24,15 @@ hitAttributeEXT vec3 attribs;
 void main() {
     vec3 rayO = gl_WorldRayOriginEXT;
     vec3 rayD = gl_WorldRayDirectionEXT;
-    vec3 hitPos = attribs; // Get the intersection position
+    vec3 hitPos = attribs; // get intersection position
 
-    // Calculate UV coordinates based on the hit position on the sphere
-    vec3 normal = normalize(hitPos - vec3(2.0, 2.0, 2.0)); // Normal at the hit point
+    // calculate UV coordinates based on the hit position on the sphere
+    vec3 normal = normalize(hitPos - vec3(2.0, 2.0, 2.0)); // normal at the hit point
     float u = 0.5 + atan(normal.z, normal.x) / (2.0 * 3.141592653589793);
     float v = 0.5 - asin(normal.y) / 3.141592653589793;
     vec2 uv = vec2(u, v);
 
-    vec2 uv0 = uv * 2.0; // Scale UVs for more patterns
+    vec2 uv0 = uv * 2.0; // scale UVs for more patterns
     vec3 finalColor = vec3(0.0);
 
     for (float i = 0.0; i < 4.0; i++) {

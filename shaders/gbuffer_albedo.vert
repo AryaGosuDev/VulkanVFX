@@ -24,7 +24,13 @@ layout (location = 0 ) out vec3 fragColor;
 
 void main() {
     mat4 modelTemp = ubo.model ;
-    if ( pc.avatarMotion == true ) modelTemp = pc.avatarPos * pc.rotation;
+    mat4 I = mat4 ( vec4(1.0,0.0,0.0,0.0) ,vec4(0.0,1.0,0.0,0.0),vec4(0.0,0.0,1.0,0.0),vec4(0.0,0.0,0.0,1.0) ) ;
+
+    const int avatarBool = ( pc.avatarMotion == true) ? 1 : 0;
+    float isMotionTrue = 1.0 - abs(sign(avatarBool - 1));
+    
+    modelTemp = (ubo.model * (I * (1.0 - isMotionTrue )))   + ( (pc.avatarPos * (I * isMotionTrue)) * pc.rotation ) ;
+    //if ( pc.avatarMotion == true ) modelTemp = pc.avatarPos * pc.rotation;
     gl_Position = ubo.proj * ubo.view * modelTemp * vec4(position, 1.) ;
     fragColor = color;
 }

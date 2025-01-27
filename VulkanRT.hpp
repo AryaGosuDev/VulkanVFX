@@ -691,11 +691,13 @@ namespace VkApplication {
 		VkAccelerationStructureTypeKHR type,
 		VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo) {
 
+		using std::cout; using std::endl;
+
+		cout << "Acceleration Structure Buffer : " << static_cast<uint64_t>(buildSizeInfo.accelerationStructureSize) << endl;
 		createBuffer(buildSizeInfo.accelerationStructureSize,
 			VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 			VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR,
-			accelerationStructure.buffer, accelerationStructure.memory, true
-		);
+			accelerationStructure.buffer, accelerationStructure.memory, true );
 		/*
 		// Buffer and memory
 		VkBufferCreateInfo bufferCreateInfo{};
@@ -772,7 +774,7 @@ namespace VkApplication {
 	}
 
 	void MainVulkApplication::createAABBBuffer() {
-
+		using std::cout; using std::endl;
 		VkDeviceSize bufferSize = sizeof(VkAabbPositionsKHR);
 
 		VkBuffer stagingBuffer;
@@ -790,7 +792,7 @@ namespace VkApplication {
 		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, aabbBuffer_, aabbBufferMemory_);
 		*/
-
+		cout << "AABB Buffer Size : " << static_cast<uint64_t>(bufferSize) << endl;
 		createBuffer(bufferSize,
 			VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | 
 			VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
